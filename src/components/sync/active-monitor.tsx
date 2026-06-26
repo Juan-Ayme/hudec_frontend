@@ -11,7 +11,12 @@ import {
   Package2,
   Terminal,
   TrendingUp,
+  XCircle,
 } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { stopSyncTask } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { toast } from "@/lib/toast";
 import { num } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
@@ -371,6 +376,12 @@ export function ActiveMonitor({ task, log }: Props) {
                 {task.task_id}
               </span>
             ) : null}
+            
+            {task && (isLive || isQueued) && (
+              <div className="ml-auto">
+                <StopButton taskId={task.task_id} />
+              </div>
+            )}
           </div>
 
           <CurrentPhaseCard
@@ -588,6 +599,33 @@ function formatElapsed(s: number): string {
   const h = Math.floor(m / 60);
   const rm = m % 60;
   return `${h}h ${String(rm).padStart(2, "0")}m`;
+}
+
+function StopButton({ taskId }: { taskId: string }) {
+  const qc = useQueryClient();
+  const mut = useMutation({
+    mutationFn: () => stopSyncTask(taskId),
+    onSuccess: (res) => {
+      toast.success("Cancelando tarea", { description: res.detail ?? "La tarea pasará a CANCELLED en unos segundos." });
+      qc.invalidateQueries({ queryKey: ["sync-tasks"] });
+    },
+    onError: (e) => {
+      toast.error("Error al cancelar", { description: (e as Error).message });
+    },
+  });
+
+  return (
+    <Button
+      size="sm"
+      variant="danger"
+      className="h-6 px-2 py-0 text-[10px]"
+      loading={mut.isPending}
+      onClick={() => mut.mutate()}
+      title="Cancelar la sincronización actual"
+    >
+      <XCircle className="h-3 w-3 mr-1" /> Detener
+    </Button>
+  );
 }
 
 // Silenciamos warning de import indirecto.

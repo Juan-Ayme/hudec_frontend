@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, Menu, ShieldCheck, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, LogOut, Menu, ShieldCheck, X } from "lucide-react";
 import { NAV_GROUPS, ALL_NAV_ITEMS } from "./nav";
 import { ApiStatus } from "./api-status";
 import { SucursalSelector } from "./sucursal-context";
@@ -16,62 +16,155 @@ function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(href + "/");
 }
 
-function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
+function NavLinks({
+  onNavigate,
+  collapsed = false,
+}: {
+  onNavigate?: () => void;
+  collapsed?: boolean;
+}) {
   const pathname = usePathname();
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => {
+    const initial = new Set<string>();
+    // Por defecto expandir el grupo que contiene la ruta actual
+    for (const g of NAV_GROUPS) {
+      if (g.items.some(i => isActive(pathname, i.href))) {
+        initial.add(g.title);
+      }
+    }
+    // Si no hay ninguno activo, expandimos el primero
+    if (initial.size === 0 && NAV_GROUPS.length > 0) {
+      initial.add(NAV_GROUPS[0].title);
+    }
+    return initial;
+  });
+
+  const toggleGroup = (title: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(title)) next.delete(title);
+      else next.add(title);
+      return next;
+    });
+  };
+
   return (
-    <nav className="flex flex-col gap-7">
-      {NAV_GROUPS.map((group) => (
-        <div key={group.title}>
-          <p className="px-3 pb-2 text-caption font-semibold uppercase tracking-[0.12em] text-faint">
-            {group.title}
-          </p>
-          <ul className="flex flex-col gap-0.5">
-            {group.items.map((item) => {
-              const active = isActive(pathname, item.href);
-              const Icon = item.icon;
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    onClick={onNavigate}
-                    className={cn(
-                      "group relative flex items-center gap-3 rounded-md px-3 py-2 text-body font-medium",
-                      "transition-[background,color,box-shadow] duration-[var(--duration-fast)] ease-[var(--ease-premium)]",
-                      active
-                        ? "bg-primary/12 text-fg"
-                        : "text-muted hover:bg-surface-2 hover:text-fg",
-                    )}
-                  >
-                    {active && (
-                      <span
-                        className="absolute inset-y-1 left-0 w-0.5 rounded-pill bg-primary"
+    <nav className={cn("flex flex-col", collapsed ? "gap-2" : "gap-4")}>
+      {NAV_GROUPS.map((group) => {
+        const isExpanded = expandedGroups.has(group.title);
+        
+        // Si el menú principal está colapsado (solo íconos), mostramos los íconos
+        // solo si el grupo está expandido. No mostramos el botón de grupo.
+        if (collapsed) {
+          if (!isExpanded) return null;
+          return (
+            <ul key={group.title} className="flex flex-col gap-0.5 mb-2">
+              {group.items.map((item) => {
+                const active = isActive(pathname, item.href);
+                const Icon = item.icon;
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      onClick={onNavigate}
+                      title={item.label}
+                      className={cn(
+                        "group relative flex items-center justify-center rounded-md px-2 py-2.5 text-body font-medium",
+                        "transition-[background,color,box-shadow] duration-[var(--duration-fast)] ease-[var(--ease-premium)]",
+                        active ? "bg-primary/12 text-fg" : "text-muted hover:bg-surface-2 hover:text-fg"
+                      )}
+                    >
+                      {active && (
+                        <span className="absolute inset-y-1 left-0 w-0.5 rounded-pill bg-primary" aria-hidden="true" />
+                      )}
+                      <Icon
+                        className={cn(
+                          "h-[18px] w-[18px] shrink-0 transition-colors duration-[var(--duration-fast)]",
+                          active ? "text-primary" : "text-faint group-hover:text-muted"
+                        )}
                         aria-hidden="true"
                       />
-                    )}
-                    <Icon
-                      className={cn(
-                        "h-[18px] w-[18px] shrink-0 transition-colors duration-[var(--duration-fast)]",
-                        active
-                          ? "text-primary"
-                          : "text-faint group-hover:text-muted",
-                      )}
-                      aria-hidden="true"
-                    />
-                    <span>{item.label}</span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      ))}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          );
+        }
+
+        // Modo expandido (sidebar completo o onHover)
+        return (
+          <div key={group.title} className="flex flex-col">
+            <button
+              onClick={() => toggleGroup(group.title)}
+              className="flex w-full items-center justify-between px-3 py-2 text-left transition-colors hover:bg-surface-2 rounded-md group/header"
+              title={isExpanded ? "Contraer grupo" : "Expandir grupo"}
+            >
+              <span className="text-caption font-semibold uppercase tracking-[0.12em] text-faint group-hover/header:text-muted">
+                {group.title}
+              </span>
+              <ChevronRight
+                className={cn(
+                  "h-3.5 w-3.5 text-faint transition-transform duration-[var(--duration-base)]",
+                  isExpanded ? "rotate-90" : ""
+                )}
+              />
+            </button>
+            
+            <div
+              className={cn(
+                "grid transition-all duration-[var(--duration-base)] ease-[var(--ease-premium)]",
+                isExpanded ? "grid-rows-[1fr] opacity-100 mt-1" : "grid-rows-[0fr] opacity-0 mt-0"
+              )}
+            >
+              <ul className="flex flex-col gap-0.5 overflow-hidden">
+                {group.items.map((item) => {
+                  const active = isActive(pathname, item.href);
+                  const Icon = item.icon;
+                  return (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        onClick={onNavigate}
+                        className={cn(
+                          "group relative flex items-center gap-3 rounded-md px-3 py-2 text-body font-medium",
+                          "transition-[background,color,box-shadow] duration-[var(--duration-fast)] ease-[var(--ease-premium)]",
+                          active ? "bg-primary/12 text-fg" : "text-muted hover:bg-surface-2 hover:text-fg"
+                        )}
+                      >
+                        {active && (
+                          <span className="absolute inset-y-1 left-0 w-0.5 rounded-pill bg-primary" aria-hidden="true" />
+                        )}
+                        <Icon
+                          className={cn(
+                            "h-[18px] w-[18px] shrink-0 transition-colors duration-[var(--duration-fast)]",
+                            active ? "text-primary" : "text-faint group-hover:text-muted"
+                          )}
+                          aria-hidden="true"
+                        />
+                        <span>{item.label}</span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </div>
+        );
+      })}
     </nav>
   );
 }
 
-function Brand() {
+function Brand({ collapsed = false }: { collapsed?: boolean }) {
   return (
-    <div className="flex items-center gap-2.5">
+    <div
+      className={cn(
+        "flex items-center",
+        collapsed ? "justify-center" : "gap-2.5",
+      )}
+      title={collapsed ? "KAWII BI · Grupo Hudec" : undefined}
+    >
       <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-accent font-bold text-primary-fg shadow-card-hover">
         <span className="relative z-10">K</span>
         <span
@@ -79,10 +172,12 @@ function Brand() {
           aria-hidden="true"
         />
       </div>
-      <div className="leading-tight">
-        <p className="text-h3 font-semibold text-fg">KAWII BI</p>
-        <p className="text-caption tracking-normal text-faint">Grupo Hudec</p>
-      </div>
+      {!collapsed && (
+        <div className="leading-tight">
+          <p className="text-h3 font-semibold text-fg">KAWII BI</p>
+          <p className="text-caption tracking-normal text-faint">Grupo Hudec</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -148,10 +243,14 @@ function UserMenu() {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarHovered, setSidebarHovered] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { user, isLoading, isAuthenticated } = useAuth();
   const current = ALL_NAV_ITEMS.find((i) => isActive(pathname, i.href));
+
+  const isEffectivelyCollapsed = sidebarCollapsed && !sidebarHovered;
 
   // /login se renderiza pelado, sin sidebar.
   const isLoginPage = pathname === "/login";
@@ -163,6 +262,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       router.replace(`/login?next=${next}`);
     }
   }, [isLoading, isAuthenticated, isLoginPage, pathname, router]);
+
+  // Restaurar preferencia de colapso del sidebar.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setSidebarCollapsed(
+      localStorage.getItem("kawii_sidebar_collapsed") === "true",
+    );
+  }, []);
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      if (typeof window !== "undefined") {
+        localStorage.setItem("kawii_sidebar_collapsed", String(next));
+      }
+      return next;
+    });
+  };
 
   if (isLoginPage) {
     return (
@@ -187,15 +304,35 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-full">
       {/* Sidebar — desktop */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-border-soft bg-bg-soft px-3 py-5 lg:flex">
-        <div className="px-2">
-          <Brand />
+      <aside
+        onMouseEnter={() => setSidebarHovered(true)}
+        onMouseLeave={() => setSidebarHovered(false)}
+        className={cn(
+          "fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-border-soft bg-bg-soft py-5 transition-[width] duration-[var(--duration-base)] ease-[var(--ease-premium)] lg:flex",
+          isEffectivelyCollapsed ? "w-[68px]" : "w-64",
+          sidebarHovered && sidebarCollapsed ? "shadow-modal border-r-0" : ""
+        )}
+      >
+        <div className={cn("flex items-center", isEffectivelyCollapsed ? "justify-center" : "px-5")}>
+          <Brand collapsed={isEffectivelyCollapsed} />
         </div>
-        <div className="mt-8 flex-1 overflow-y-auto px-1">
-          <NavLinks />
+        
+        <div className={cn("mt-8 flex-1 overflow-y-auto w-full", isEffectivelyCollapsed ? "px-1" : "px-4")}>
+          <NavLinks collapsed={isEffectivelyCollapsed} />
         </div>
-        <div className="border-t border-border-soft px-3 pt-4">
-          <ApiStatus />
+
+        <div className={cn("border-t border-border-soft pt-4 flex flex-col gap-3 w-full", isEffectivelyCollapsed ? "px-1 items-center" : "px-4")}>
+          <button
+            onClick={toggleSidebar}
+            className={cn(
+              "flex items-center justify-center rounded-md p-2 text-muted transition-colors hover:bg-surface-2 hover:text-fg",
+              isEffectivelyCollapsed ? "" : "w-full gap-2 justify-start"
+            )}
+            title={isEffectivelyCollapsed ? "Expandir menú" : "Colapsar menú"}
+          >
+            {isEffectivelyCollapsed ? <ChevronRight className="h-5 w-5" /> : <><ChevronLeft className="h-5 w-5" /> <span className="text-sm font-medium">Colapsar</span></>}
+          </button>
+          {!isEffectivelyCollapsed && <ApiStatus />}
         </div>
       </aside>
 
@@ -233,7 +370,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Main column */}
-      <div className="flex min-w-0 flex-1 flex-col lg:pl-64">
+      <div
+        className={cn(
+          "flex min-w-0 flex-1 flex-col transition-[padding] duration-[var(--duration-base)] ease-[var(--ease-premium)]",
+          sidebarCollapsed ? "lg:pl-[68px]" : "lg:pl-64"
+        )}
+      >
         <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border-soft bg-bg/85 px-4 backdrop-blur-md sm:px-6">
           <button
             onClick={() => setMobileOpen(true)}

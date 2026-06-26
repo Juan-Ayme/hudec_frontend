@@ -9,7 +9,7 @@
  * solo refrescar el AuthContext con `signIn()` y navegar a `next`.
  */
 
-import { Suspense, useState, type FormEvent } from "react";
+import { Suspense, useEffect, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LogIn, Lock, User as UserIcon } from "lucide-react";
 import { useAuth } from "@/components/auth-context";
@@ -30,9 +30,11 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(null);
 
   // Si ya estoy autenticado y caí acá por accidente, voy directo al "next".
-  if (!isLoading && isAuthenticated) {
-    router.replace(next);
-  }
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      router.replace(next);
+    }
+  }, [isLoading, isAuthenticated, next, router]);
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();

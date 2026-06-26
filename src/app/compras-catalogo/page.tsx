@@ -65,13 +65,14 @@ import { dateShort, money, num, pct } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import { ClassificationCell, getClassificationMeta } from "@/components/ui/classification";
 import { useSucursal } from "@/components/sucursal-context";
-import { PageHeader } from "@/components/ui/page-header";
+
 import { Button } from "@/components/ui/button";
 import { KpiStat } from "@/components/ui/kpi-stat";
 import { Card, CardHeader, CardBody } from "@/components/ui/card";
 import { LoadingState, ErrorState, EmptyState } from "@/components/ui/states";
 import { Drawer } from "@/components/ui/drawer";
 import { TimeSeriesChart } from "@/components/charts/time-series-chart";
+import { Pagination } from "@/components/ui/data-table";
 import { SkuHistoryChart } from "@/components/charts/sku-history-chart";
 import { cn } from "@/lib/utils";
 import type { ComprasCatalogoSku } from "@/lib/types";
@@ -100,8 +101,6 @@ type TreeNode = {
   altas: number;
   children: TreeNode[];
 };
-
-const RENDER_CAP = 150;
 
 type SeverityFilter = "todas" | "critico" | "alta";
 
@@ -139,6 +138,18 @@ export default function ComprasCatalogoPage() {
   const [selection, setSelection] = useState<Selection>(ROOT_SELECTION);
   const [search, setSearch] = useState("");
   const [selectedSku, setSelectedSku] = useState<ComprasCatalogoSku | null>(null);
+  const [offset, setOffset] = useState(0);
+  const limit = 10;
+
+  const [prevSearch, setPrevSearch] = useState(search);
+  const [prevSeverity, setPrevSeverity] = useState(severity);
+  const [prevSelection, setPrevSelection] = useState(selection);
+  if (search !== prevSearch || severity !== prevSeverity || selection !== prevSelection) {
+    setPrevSearch(search);
+    setPrevSeverity(severity);
+    setPrevSelection(selection);
+    setOffset(0);
+  }
 
   const query = useQuery({
     queryKey: ["compras-catalogo", officeId],
@@ -262,21 +273,7 @@ export default function ComprasCatalogoPage() {
   };
 
   return (
-    <div>
-      <PageHeader
-        eyebrow="Reportes · Dashboard de compras"
-        title="Compras & Catálogo"
-        description={
-          sucursalName
-            ? `SKUs en quiebre real para ${sucursalName} — productos que generan venta perdida HOY.`
-            : "SKUs en quiebre real (consolidado de todas las tiendas) — productos que generan venta perdida HOY."
-        }
-        actions={
-          <Button onClick={downloadExcel} variant="secondary">
-            <Download className="h-4 w-4" /> Exportar Excel
-          </Button>
-        }
-      />
+    <div className="flex flex-col gap-6">
 
       {query.isError ? (
         <ErrorState error={query.error} />
@@ -472,6 +469,16 @@ export default function ComprasCatalogoPage() {
                           🟠 Alta
                         </SeverityTab>
                       </div>
+                      <div className="w-px h-6 bg-border-soft mx-1 hidden sm:block" />
+                      <Button 
+                        onClick={downloadExcel} 
+                        variant="outline" 
+                        size="sm"
+                        className="h-8 shrink-0 border-success/40 bg-success/12 text-success transition-colors hover:bg-success/25 hover:border-success/60"
+                      >
+                        <Download className="h-3.5 w-3.5 mr-1" />
+                        <span className="hidden sm:inline">Exportar</span>
+                      </Button>
                     </div>
                   }
                 />
@@ -484,11 +491,23 @@ export default function ComprasCatalogoPage() {
                       hint="Probá cambiar la severidad, navegá a otro nivel o limpiá la búsqueda."
                     />
                   ) : (
-                    <SkuTable
-                      rows={filteredSkus}
-                      onSelect={setSelectedSku}
-                      onAction={handleAction}
-                    />
+                    <>
+                      <SkuTable
+                        rows={filteredSkus.slice(offset, offset + limit)}
+                        onSelect={setSelectedSku}
+                        onAction={handleAction}
+                      />
+                      {filteredSkus.length > limit && (
+                        <div className="border-t border-border-soft px-4 py-2">
+                          <Pagination
+                            total={filteredSkus.length}
+                            limit={limit}
+                            offset={offset}
+                            onChange={setOffset}
+                          />
+                        </div>
+                      )}
+                    </>
                   )}
                 </CardBody>
               </Card>
@@ -663,7 +682,7 @@ function JerarquiaTree({
   }
   const max = tree[0]?.ventaSoles || 1;
   return (
-    <ul className="space-y-0.5">
+    <ul className="max-h-[65vh] overflow-y-auto pr-1 space-y-0.5 custom-scrollbar">
       {tree.map((dept, i) => (
         <DeptRow
           key={dept.name}
@@ -1037,7 +1056,6 @@ function SkuTable({
     action: "ordenar" | "posponer" | "ignorar",
   ) => void;
 }) {
-  const shown = rows.slice(0, RENDER_CAP);
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-left text-xs">
@@ -1053,7 +1071,7 @@ function SkuTable({
           </tr>
         </thead>
         <tbody>
-          {shown.map((s) => (
+          {rows.map((s) => (
             <tr
               key={`${s.sucursal}-${s.sku}`}
               className="group border-b border-border/20 transition-colors hover:bg-surface-3/45"
@@ -1152,11 +1170,6 @@ function SkuTable({
           ))}
         </tbody>
       </table>
-      {rows.length > RENDER_CAP && (
-        <p className="mt-3 text-center text-xs text-faint">
-          Mostrando los primeros {num(RENDER_CAP)} de {num(rows.length)}. Refiná con filtros para ver el resto.
-        </p>
-      )}
     </div>
   );
 }

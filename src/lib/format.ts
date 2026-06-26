@@ -19,8 +19,14 @@ const NUM2 = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 2 });
 
 function toNum(v: unknown): number | null {
   if (v === null || v === undefined || v === "") return null;
-  const n = typeof v === "number" ? v : Number(v);
-  return Number.isFinite(n) ? n : null;
+  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  const str = String(v);
+  const m = str.match(/-?\d+(\.\d+)?/);
+  if (m) {
+    const p = parseFloat(m[0]);
+    return Number.isFinite(p) ? p : null;
+  }
+  return null;
 }
 
 /** "S/ 1,234.50" */

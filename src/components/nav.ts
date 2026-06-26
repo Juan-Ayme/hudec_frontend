@@ -34,7 +34,6 @@ export const NAV_GROUPS: NavGroup[] = [
     title: "Análisis",
     items: [
       { href: "/", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/productos", label: "Productos", icon: Package },
       // ENLACES COMENTADOS (2026-06-20) — apuntan a páginas que no existen en src/app/.
       // Reactivar cuando se creen las páginas correspondientes.
       // { href: "/stock", label: "Stock", icon: Boxes },
@@ -46,11 +45,8 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     title: "Reportes",
     items: [
-      { href: "/reportes/tablero", label: "Tablero Semanal", icon: Gauge },
-      { href: "/reportes/diario", label: "Reporte Diario", icon: CalendarClock },
       { href: "/compras-catalogo", label: "Compras & Catálogo", icon: ShoppingCart },
       { href: "/rotacion-historica", label: "Rotación Histórica", icon: History },
-      { href: "/simulador", label: "Simulador Cascada", icon: Activity },
     ],
   },
   {
@@ -58,6 +54,15 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/taxonomia", label: "Taxonomía", icon: FolderTree },
       { href: "/product-types", label: "Product Types", icon: Tags },
+    ],
+  },
+  {
+    title: "Beta",
+    items: [
+      { href: "/productos", label: "Productos", icon: Package },
+      { href: "/reportes/tablero", label: "Tablero Semanal", icon: Gauge },
+      { href: "/reportes/diario", label: "Reporte Diario", icon: CalendarClock },
+      { href: "/simulador", label: "Simulador Cascada", icon: Activity },
     ],
   },
   {

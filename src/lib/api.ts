@@ -943,6 +943,12 @@ export const triggerFullSync = (body: {
 export const getSyncTasks = (signal?: AbortSignal) =>
   request<SyncTask[]>("/sync/tasks", { signal });
 
+export const stopSyncTask = (taskId: string) =>
+  request<{ ok: boolean; task_id: string; status: string; detail?: string }>(
+    `/sync/${taskId}/stop`,
+    { method: "POST" }
+  );
+
 // FUNCIÓN COMENTADA (2026-06-20) — no importada por ninguna página.
 // El endpoint backend /sync/tasks/{id} también está comentado.
 // La función getSyncTasks (lista completa) sí se sigue usando.
