@@ -51,6 +51,7 @@ import {
   Skull,
   PauseCircle,
   type LucideIcon,
+  SlidersHorizontal,
 } from "lucide-react";
 
 import {
@@ -134,7 +135,11 @@ function shortClasif(clasif: string): string {
 
 export default function ComprasCatalogoPage() {
   const { officeId, sucursalName } = useSucursal();
-  const [severity, setSeverity] = useState<SeverityFilter>("todas");
+  const [fSeveridad, setFSeveridad] = useState<SeverityFilter>("todas");
+  const [fTendencia, setFTendencia] = useState<"todas" | "creciente" | "estable" | "decreciente">("todas");
+  const [fStockAlmacen, setFStockAlmacen] = useState<"todos" | "con_stock" | "sin_stock">("todos");
+  const [showFilters, setShowFilters] = useState(false);
+
   const [selection, setSelection] = useState<Selection>(ROOT_SELECTION);
   const [search, setSearch] = useState("");
   const [selectedSku, setSelectedSku] = useState<ComprasCatalogoSku | null>(null);
@@ -142,12 +147,17 @@ export default function ComprasCatalogoPage() {
   const limit = 10;
 
   const [prevSearch, setPrevSearch] = useState(search);
-  const [prevSeverity, setPrevSeverity] = useState(severity);
+  const [prevSeverity, setPrevSeverity] = useState(fSeveridad);
   const [prevSelection, setPrevSelection] = useState(selection);
-  if (search !== prevSearch || severity !== prevSeverity || selection !== prevSelection) {
+  const [prevTendencia, setPrevTendencia] = useState(fTendencia);
+  const [prevStockAlmacen, setPrevStockAlmacen] = useState(fStockAlmacen);
+
+  if (search !== prevSearch || fSeveridad !== prevSeverity || selection !== prevSelection || fTendencia !== prevTendencia || fStockAlmacen !== prevStockAlmacen) {
     setPrevSearch(search);
-    setPrevSeverity(severity);
+    setPrevSeverity(fSeveridad);
     setPrevSelection(selection);
+    setPrevTendencia(fTendencia);
+    setPrevStockAlmacen(fStockAlmacen);
     setOffset(0);
   }
 
@@ -169,8 +179,16 @@ export default function ComprasCatalogoPage() {
     const all = query.data?.skus ?? [];
     const s = search.trim().toLowerCase();
     return all.filter((sku) => {
-      if (severity === "critico" && !sku.severidad.includes("Crítico")) return false;
-      if (severity === "alta" && !sku.severidad.includes("Alta")) return false;
+      if (fSeveridad === "critico" && !sku.severidad.includes("Crítico")) return false;
+      if (fSeveridad === "alta" && !sku.severidad.includes("Alta")) return false;
+      
+      if (fTendencia === "creciente" && sku.tendencia !== "Creciente") return false;
+      if (fTendencia === "estable" && sku.tendencia !== "Estable") return false;
+      if (fTendencia === "decreciente" && sku.tendencia !== "Decreciente") return false;
+
+      if (fStockAlmacen === "con_stock" && sku.stock_almacen <= 0) return false;
+      if (fStockAlmacen === "sin_stock" && sku.stock_almacen > 0) return false;
+
       if (selection.dept && sku.departamento !== selection.dept) return false;
       if (selection.cat && sku.categoria !== selection.cat) return false;
       if (selection.subcat && sku.subcategoria !== selection.subcat) return false;
@@ -183,7 +201,7 @@ export default function ComprasCatalogoPage() {
       }
       return true;
     });
-  }, [query.data?.skus, severity, selection, search]);
+  }, [query.data?.skus, fSeveridad, fTendencia, fStockAlmacen, selection, search]);
 
   // KPIs locales del nivel seleccionado (recalculados sobre el subset jerárquico,
   // ignorando severidad/búsqueda para que reflejen el "size" del nodo).
@@ -446,29 +464,26 @@ export default function ComprasCatalogoPage() {
                           className="h-8 w-44 rounded-md border border-border-soft bg-surface-2 pl-8 pr-2 text-xs text-fg placeholder:text-faint focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/40"
                         />
                       </label>
-                      {/* Pestañas de severidad */}
-                      <div className="inline-flex rounded-md border border-border-soft bg-surface-2 p-0.5">
-                        <SeverityTab
-                          active={severity === "todas"}
-                          onClick={() => setSeverity("todas")}
-                        >
-                          Todas
-                        </SeverityTab>
-                        <SeverityTab
-                          active={severity === "critico"}
-                          onClick={() => setSeverity("critico")}
-                          accent="danger"
-                        >
-                          🔴 Crítico
-                        </SeverityTab>
-                        <SeverityTab
-                          active={severity === "alta"}
-                          onClick={() => setSeverity("alta")}
-                          accent="warning"
-                        >
-                          🟠 Alta
-                        </SeverityTab>
-                      </div>
+                      {/* Botón de Filtros */}
+                      <Button
+                        onClick={() => setShowFilters(true)}
+                        variant="outline"
+                        size="sm"
+                        className={cn(
+                          "h-8 shrink-0 relative transition-all",
+                          (fSeveridad !== "todas" || fTendencia !== "todas" || fStockAlmacen !== "todos")
+                            ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 hover:border-primary/60"
+                            : "border-border-soft bg-surface-2 hover:bg-surface-3 hover:text-fg text-muted"
+                        )}
+                      >
+                        <SlidersHorizontal className="h-3.5 w-3.5 mr-2" />
+                        <span className="hidden sm:inline font-medium">Filtros</span>
+                        {(fSeveridad !== "todas" || fTendencia !== "todas" || fStockAlmacen !== "todos") && (
+                          <span className="absolute -top-1.5 -right-1.5 h-3.5 w-3.5 rounded-full bg-primary text-[8px] font-bold text-black flex items-center justify-center border-2 border-surface shadow-sm">
+                            {(fSeveridad !== "todas" ? 1 : 0) + (fTendencia !== "todas" ? 1 : 0) + (fStockAlmacen !== "todos" ? 1 : 0)}
+                          </span>
+                        )}
+                      </Button>
                       <div className="w-px h-6 bg-border-soft mx-1 hidden sm:block" />
                       <Button 
                         onClick={downloadExcel} 
@@ -515,6 +530,89 @@ export default function ComprasCatalogoPage() {
           </div>
         </>
       )}
+
+      
+      
+
+      
+      {/* Drawer de Filtros Avanzados */}
+      <Drawer
+        open={showFilters}
+        onClose={() => setShowFilters(false)}
+        title="Filtros Avanzados"
+        subtitle="Segmenta tu tabla de compras sugeridas."
+        width="sm"
+      >
+        <div className="flex h-full flex-col">
+          <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+            <div className="space-y-6">
+              {/* Bloque: Severidad */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-faint">
+                  <AlertTriangle className="h-4 w-4" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted">Severidad del Quiebre</span>
+                </div>
+                <div className="flex flex-wrap gap-2 pl-6">
+                  <FilterChip label="Todas" active={fSeveridad === "todas"} onClick={() => setFSeveridad("todas")} />
+                  <FilterChip label="🔴 Crítico" active={fSeveridad === "critico"} onClick={() => setFSeveridad("critico")} tone="danger" />
+                  <FilterChip label="🟠 Alta" active={fSeveridad === "alta"} onClick={() => setFSeveridad("alta")} tone="warning" />
+                </div>
+              </div>
+
+              {/* Bloque: Tendencia */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-faint">
+                  <TrendingUp className="h-4 w-4" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted">Tendencia de Demanda</span>
+                </div>
+                <p className="text-[0.65rem] text-faint/80 pl-6 leading-tight">Compara los últimos 30 días vs los 90 días históricos.</p>
+                <div className="flex flex-wrap gap-2 pl-6">
+                  <FilterChip label="Todas" active={fTendencia === "todas"} onClick={() => setFTendencia("todas")} />
+                  <FilterChip label="📈 Creciente" active={fTendencia === "creciente"} onClick={() => setFTendencia("creciente")} tone="success" />
+                  <FilterChip label="➡️ Estable" active={fTendencia === "estable"} onClick={() => setFTendencia("estable")} tone="primary" />
+                  <FilterChip label="📉 Decreciente" active={fTendencia === "decreciente"} onClick={() => setFTendencia("decreciente")} tone="warning" />
+                </div>
+              </div>
+
+              {/* Bloque: Stock en Almacén */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-faint">
+                  <Archive className="h-4 w-4" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted">Stock en Almacén Central</span>
+                </div>
+                <p className="text-[0.65rem] text-faint/80 pl-6 leading-tight">¿Tenemos unidades en CD para trasladar inmediatamente?</p>
+                <div className="flex flex-wrap gap-2 pl-6">
+                  <FilterChip label="Todos" active={fStockAlmacen === "todos"} onClick={() => setFStockAlmacen("todos")} />
+                  <FilterChip label="🏢 Con Stock" active={fStockAlmacen === "con_stock"} onClick={() => setFStockAlmacen("con_stock")} tone="success" />
+                  <FilterChip label="⚠️ Sin Stock" active={fStockAlmacen === "sin_stock"} onClick={() => setFStockAlmacen("sin_stock")} tone="danger" />
+                </div>
+              </div>
+            </div>
+          </div>
+          {/* Drawer Footer */}
+          <div className="shrink-0 border-t border-border-soft bg-surface-2 p-4">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                className="flex-1 border-border-soft bg-surface-1 hover:bg-surface-3 hover:text-fg text-muted"
+                onClick={() => {
+                  setFSeveridad("todas");
+                  setFTendencia("todas");
+                  setFStockAlmacen("todos");
+                }}
+              >
+                Limpiar todo
+              </Button>
+              <Button
+                className="flex-1 bg-primary text-black hover:bg-primary/90 font-semibold"
+                onClick={() => setShowFilters(false)}
+              >
+                Ver Resultados
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Drawer>
 
       {/* Drawer de detalle SKU — gráfico histórico + métricas + acciones */}
       <SkuDetailDrawer
@@ -1611,3 +1709,39 @@ function Stat({
   );
 }
 
+
+function FilterChip({
+  label,
+  active,
+  onClick,
+  tone = "primary",
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  tone?: "primary" | "success" | "warning" | "danger" | "info" | "violet";
+}) {
+  const toneStyles: Record<string, string> = {
+    primary: "border-primary/50 bg-primary/10 text-primary shadow-[0_0_12px_rgba(99,102,241,0.2)] backdrop-blur-md",
+    success: "border-success/50 bg-success/10 text-success shadow-[0_0_12px_rgba(45,212,167,0.2)] backdrop-blur-md",
+    warning: "border-warning/50 bg-warning/10 text-warning shadow-[0_0_12px_rgba(245,166,35,0.2)] backdrop-blur-md",
+    danger: "border-danger/50 bg-danger/10 text-danger shadow-[0_0_12px_rgba(240,85,109,0.2)] backdrop-blur-md",
+    info: "border-info/50 bg-info/10 text-info shadow-[0_0_12px_rgba(56,189,248,0.2)] backdrop-blur-md",
+    violet: "border-violet/50 bg-violet/10 text-violet shadow-[0_0_12px_rgba(167,139,250,0.2)] backdrop-blur-md",
+  };
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "group inline-flex flex-1 sm:flex-none justify-center items-center gap-1.5 rounded-lg border px-2.5 py-1.5",
+        "text-xs font-medium whitespace-nowrap",
+        "transition-all duration-[var(--duration-base)] ease-[var(--ease-premium)]",
+        active
+          ? toneStyles[tone]
+          : "border-border/40 bg-surface-2/40 text-muted hover:border-border hover:bg-surface-3/60 hover:text-fg backdrop-blur-sm hover:scale-[1.02]",
+      )}
+    >
+      <span>{label}</span>
+    </button>
+  );
+}
