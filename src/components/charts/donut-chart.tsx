@@ -20,8 +20,8 @@ export function DonutChart({
   const total = data.reduce((s, d) => s + d.value, 0);
   const mounted = useMounted();
   return (
-    <div className="flex flex-col items-center gap-4 sm:flex-row">
-      <div className="relative" style={{ width: height, height }}>
+    <div className="flex flex-col items-center gap-4 sm:flex-row w-full">
+      <div className="relative shrink-0" style={{ width: height, height }}>
         {mounted && (
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
@@ -44,8 +44,8 @@ export function DonutChart({
         </ResponsiveContainer>
         )}
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-2xl font-semibold text-fg">
-            {total.toLocaleString("es-PE")}
+          <span className="text-lg font-semibold text-fg">
+            {Intl.NumberFormat("es-PE", { notation: "compact", maximumFractionDigits: 1 }).format(total)}
           </span>
           <span className="text-xs text-muted">total</span>
         </div>

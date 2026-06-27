@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { animate, stagger } from "animejs";
 import {
   Download,
   Search,
@@ -27,6 +28,9 @@ import {
   Target,
   BarChart2,
   ShieldAlert,
+  Banknote,
+  Box,
+  TrendingDown,
   type LucideIcon,
 } from "lucide-react";
 import { getMatrix, matrixExcelUrl } from "@/lib/api";
@@ -88,18 +92,18 @@ const TAB_TONE_INACTIVE: Record<KanbanTone, string> = {
   neutral: "bg-surface-3 text-muted",
 };
 const TAB_TONE_ACTIVE: Record<KanbanTone, string> = {
-  primary: "bg-primary text-primary-fg shadow-sm shadow-primary/30",
-  danger:  "bg-danger text-white shadow-sm shadow-danger/30",
-  success: "bg-success text-white shadow-sm shadow-success/30",
-  warning: "bg-warning text-white shadow-sm shadow-warning/30",
+  primary: "bg-primary text-primary-fg shadow-[0_0_16px_rgba(99,102,241,0.4)]",
+  danger:  "bg-danger text-white shadow-[0_0_16px_rgba(240,85,109,0.4)]",
+  success: "bg-success text-white shadow-[0_0_16px_rgba(45,212,167,0.4)]",
+  warning: "bg-warning text-white shadow-[0_0_16px_rgba(245,166,35,0.4)]",
   neutral: "bg-fg text-bg shadow-sm",
 };
 const TAB_ACTIVE_BORDER: Record<KanbanTone, string> = {
-  primary: "border-primary/50 bg-primary/8 shadow-sm shadow-primary/10",
-  danger:  "border-danger/50 bg-danger/8 shadow-sm shadow-danger/10",
-  success: "border-success/50 bg-success/8 shadow-sm shadow-success/10",
-  warning: "border-warning/50 bg-warning/8 shadow-sm shadow-warning/10",
-  neutral: "border-border bg-surface-3/60 shadow-sm",
+  primary: "border-primary/50 bg-primary/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] backdrop-blur-sm",
+  danger:  "border-danger/50 bg-danger/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] backdrop-blur-sm",
+  success: "border-success/50 bg-success/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] backdrop-blur-sm",
+  warning: "border-warning/50 bg-warning/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] backdrop-blur-sm",
+  neutral: "border-border bg-surface-3/60 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] backdrop-blur-sm",
 };
 const TAB_BADGE_INACTIVE: Record<KanbanTone, string> = {
   primary: "bg-primary/15 text-primary",
@@ -216,14 +220,16 @@ function HealthBadge({ paraComprar, saludables, compact }: { paraComprar: number
 
   return (
     <span
-      className={cn(
-        "inline-flex items-center gap-1 rounded-full border border-danger/40 bg-danger/15 px-1.5 py-0.5 text-danger",
-        compact ? "text-[0.5rem]" : "text-[0.55rem]",
-      )}
-      title={`${paraComprar} SKU(s) para reponer vs ${saludables} saludables.`}
+      className="group inline-flex items-center cursor-help rounded-full text-danger/80 hover:bg-danger/10 hover:px-1.5 hover:py-0.5 transition-all duration-300"
     >
-      <AlertTriangle className={cn(compact ? "h-2 w-2" : "h-2.5 w-2.5", "animate-pulse")} />
-      <span className="font-bold tabular-nums">{paraComprar} {compact ? "" : "para comprar"}</span>
+      <AlertTriangle className={cn(compact ? "h-3 w-3" : "h-3.5 w-3.5", "shrink-0")} />
+      <span className={cn(
+        "overflow-hidden whitespace-nowrap transition-all duration-300 ease-in-out font-bold tabular-nums text-danger",
+        "max-w-0 opacity-0 group-hover:max-w-[150px] group-hover:opacity-100 group-hover:ml-1",
+        compact ? "text-[0.55rem]" : "text-[0.6rem]"
+      )}>
+        {paraComprar} reponer
+      </span>
     </span>
   );
 }
@@ -245,12 +251,12 @@ function FilterChip({
   tone?: "primary" | "success" | "warning" | "danger" | "info" | "violet";
 }) {
   const toneStyles: Record<string, string> = {
-    primary: "border-primary/50 bg-primary/15 text-primary shadow-sm shadow-primary/10",
-    success: "border-success/50 bg-success/15 text-success shadow-sm",
-    warning: "border-warning/50 bg-warning/15 text-warning shadow-sm",
-    danger: "border-danger/50 bg-danger/15 text-danger shadow-sm",
-    info: "border-info/50 bg-info/15 text-info shadow-sm",
-    violet: "border-violet/50 bg-violet/15 text-violet shadow-sm",
+    primary: "border-primary/50 bg-primary/10 text-primary shadow-[0_0_12px_rgba(99,102,241,0.2)] backdrop-blur-md",
+    success: "border-success/50 bg-success/10 text-success shadow-[0_0_12px_rgba(45,212,167,0.2)] backdrop-blur-md",
+    warning: "border-warning/50 bg-warning/10 text-warning shadow-[0_0_12px_rgba(245,166,35,0.2)] backdrop-blur-md",
+    danger: "border-danger/50 bg-danger/10 text-danger shadow-[0_0_12px_rgba(240,85,109,0.2)] backdrop-blur-md",
+    info: "border-info/50 bg-info/10 text-info shadow-[0_0_12px_rgba(56,189,248,0.2)] backdrop-blur-md",
+    violet: "border-violet/50 bg-violet/10 text-violet shadow-[0_0_12px_rgba(167,139,250,0.2)] backdrop-blur-md",
   };
   return (
     <button
@@ -258,21 +264,21 @@ function FilterChip({
       className={cn(
         "group inline-flex flex-1 sm:flex-none justify-center items-center gap-1.5 rounded-lg border px-2.5 py-1.5",
         "text-xs font-medium whitespace-nowrap",
-        "transition-all duration-[var(--duration-fast)] ease-[var(--ease-premium)]",
+        "transition-all duration-[var(--duration-base)] ease-[var(--ease-premium)]",
         active
           ? toneStyles[tone]
-          : "border-border-soft bg-surface-2 text-muted hover:border-border hover:bg-surface-3 hover:text-fg",
+          : "border-border/40 bg-surface-2/40 text-muted hover:border-border hover:bg-surface-3/60 hover:text-fg backdrop-blur-sm hover:scale-[1.02]",
       )}
     >
       <span>{label}</span>
-      {count !== undefined && (
+      {/* count !== undefined && (
         <span className={cn(
-          "rounded-md px-1.5 py-0.5 text-[0.6rem] font-semibold tabular-nums",
-          active ? "bg-black/10" : "bg-surface-3 text-faint group-hover:bg-surface-4",
+          "rounded-md px-1.5 py-0.5 text-[0.6rem] font-semibold tabular-nums transition-colors",
+          active ? "bg-black/20 text-fg" : "bg-surface-3/50 text-faint group-hover:bg-surface-4/80 group-hover:text-muted",
         )}>
           {num(count)}
         </span>
-      )}
+      ) */}
     </button>
   );
 }
@@ -620,6 +626,17 @@ export default function VentasJerarquicasPage() {
     setCurrentPage(1);
   }, [activeTab, deptoSel, catSel, subcatSel, busqueda, fStock, fDias, fMesIngreso, fXYZ, fTendencia, fCobertura]);
 
+  /* AnimeJS Stagger effect */
+  useEffect(() => {
+    animate(".product-list-item", {
+      translateY: [20, 0],
+      opacity: [0, 1],
+      delay: stagger(40, { start: 50 }),
+      easing: "outElastic(1, .8)",
+      duration: 600,
+    });
+  }, [pageItems, activeTab]);
+
   const hasActiveAdvancedFilters =
     fXYZ !== "todos" ||
     fTendencia !== "todos" ||
@@ -645,7 +662,7 @@ export default function VentasJerarquicasPage() {
           )}
         >
           <aside className="flex flex-col gap-3">
-            <Card>
+            <Card className="bg-surface/30 backdrop-blur-xl border-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
               <CardBody className="p-3">
                 <div className="mb-2 flex items-center gap-2">
                   <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/15 text-primary">
@@ -663,7 +680,7 @@ export default function VentasJerarquicasPage() {
                     {money(totalGeneral)}
                   </p>
                 </div>
-                <div className="flex gap-0.5 overflow-hidden rounded-pill">
+                <div className="mt-3 flex gap-0.5 overflow-hidden rounded-full h-1.5 opacity-0 animate-[fade-in-up_var(--duration-slow)_var(--ease-premium)_both]">
                   {jerarquia.slice(0, 5).map((d, i) => {
                     const colors = [
                       "bg-primary",
@@ -675,26 +692,26 @@ export default function VentasJerarquicasPage() {
                     return (
                       <div
                         key={d.name}
-                        className={cn("h-1 transition-all duration-[var(--duration-slow)]", colors[i])}
-                        style={{ flex: d.pct }}
+                        className={cn("h-full transition-all duration-[var(--duration-slow)]", colors[i])}
+                        style={{ width: `${d.pct * 100}%` }}
                         title={`${d.name}: ${pct(d.pct * 100)}`}
                       />
                     );
                   })}
                   <div
-                    className="h-1 bg-surface-3"
+                    className="h-full bg-surface-3"
                     style={{
-                      flex: Math.max(
+                      width: `${Math.max(
                         0,
-                        1 - jerarquia.slice(0, 5).reduce((a, d) => a + d.pct, 0),
-                      ),
+                        (1 - jerarquia.slice(0, 5).reduce((a, d) => a + d.pct, 0)) * 100
+                      )}%`,
                     }}
                   />
                 </div>
               </CardBody>
             </Card>
 
-            <Card>
+            <Card className="bg-surface/30 backdrop-blur-xl border-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
               <CardBody className="p-2">
                 <button
                   onClick={clearSelection}
@@ -717,7 +734,7 @@ export default function VentasJerarquicasPage() {
                   </span>
                 </button>
 
-                <ul className="mt-1 flex max-h-[65vh] flex-col gap-0.5 overflow-y-auto pr-1">
+                                                <ul className="mt-1 flex max-h-[65vh] flex-col gap-1 overflow-y-auto pr-1 custom-scrollbar">
                   {jerarquia.map((dept, deptIdx) => {
                     const isDeptSel = deptoSel === dept.name;
                     const isDeptExpanded = expandedDeptos.has(dept.name);
@@ -727,21 +744,21 @@ export default function VentasJerarquicasPage() {
                       <li key={dept.name}>
                         <div
                           className={cn(
-                            "group flex w-full items-center gap-1 rounded-md transition-all",
+                            "group flex w-full items-start gap-0.5 rounded-xl transition-all border border-transparent",
                             "duration-[var(--duration-fast)] ease-[var(--ease-premium)]",
                             isDeptSel && !catSel
-                              ? `${deptTone.bgActive} ${deptTone.borderActive}`
+                              ? `${deptTone.bgActive} border-white/10 shadow-sm`
                               : "hover:bg-surface-2",
                           )}
                         >
                           <button
                             onClick={() => toggleDepto(dept.name)}
-                            className="flex h-8 w-7 shrink-0 items-center justify-center rounded-md text-faint transition-colors hover:bg-surface-3 hover:text-muted"
+                            className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-faint transition-all hover:bg-surface-3 hover:text-muted"
                             aria-label={isDeptExpanded ? "Colapsar" : "Expandir"}
                           >
                             <ChevronRight
                               className={cn(
-                                "h-3.5 w-3.5 transition-transform duration-[var(--duration-base)] ease-[var(--ease-premium)]",
+                                "h-4 w-4 transition-transform duration-[var(--duration-base)] ease-[var(--ease-premium)]",
                                 isDeptExpanded && "rotate-90",
                               )}
                             />
@@ -749,61 +766,56 @@ export default function VentasJerarquicasPage() {
 
                           <button
                             onClick={() => selectDepto(dept.name)}
-                            className="flex min-w-0 flex-1 items-center gap-2 py-2 pr-3 text-left"
+                            className="relative flex min-w-0 flex-1 flex-col justify-center py-2.5 pr-3 text-left overflow-hidden"
                           >
-                            <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", deptTone.dot)} />
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-body font-medium text-fg">
-                                {dept.name}
-                              </p>
-                              <div className="mt-0.5 flex items-center gap-2">
-                                <ProgressBar pct={dept.pct} tone={deptTone.bar} />
-                                <span className="shrink-0 text-[0.6rem] tabular-nums text-faint">
-                                  {pct(dept.pct * 100)}
-                                </span>
+                            <div className="flex items-center justify-between gap-3 w-full mb-1">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full shadow-sm", deptTone.dot)} />
+                                <p className="truncate text-[0.8rem] font-semibold text-fg/90">
+                                  {dept.name}
+                                </p>
                               </div>
-                            </div>
-                            <div className="flex shrink-0 items-center gap-2">
-                              <HealthBadge paraComprar={dept.paraComprar} saludables={dept.saludables} />
-                              <div className="text-right">
-                                <p className="font-mono text-caption tabular-nums font-semibold text-fg">
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <HealthBadge paraComprar={dept.paraComprar} saludables={dept.saludables} compact={!isDeptSel} />
+                                <p className="font-mono text-[0.75rem] tabular-nums font-bold text-fg shrink-0">
                                   {money(dept.ventas)}
                                 </p>
-                                <p className="text-[0.6rem] tabular-nums text-faint">
-                                  {num(dept.skuCount)} SKUs
-                                </p>
                               </div>
+                            </div>
+                            
+                            <div className="flex items-center gap-2 w-full pl-4.5 mt-0.5 mb-1 pr-1">
+                               <ProgressBar pct={dept.pct} tone={deptTone.bar} />
+                               <div className="flex items-center gap-1.5 text-[0.65rem] text-faint shrink-0 tabular-nums">
+                                 <span>{pct(dept.pct * 100)}</span>
+                                 <span>•</span>
+                                 <span>{num(dept.skuCount)} SKUs</span>
+                               </div>
                             </div>
                           </button>
                         </div>
 
                         {isDeptExpanded && dept.cats.length > 0 && (
-                          <ul className="ml-3 animate-tree-expand overflow-hidden border-l border-border-soft/50 pl-1">
+                          <ul className="ml-3.5 mt-1 mb-2 animate-tree-expand overflow-hidden border-l border-white/5 pl-1.5 flex flex-col gap-0.5">
                             {dept.cats.map((cat) => {
                               const catKey = `${dept.name}::${cat.name}`;
-                              const isCatSel =
-                                isDeptSel && catSel === cat.name;
+                              const isCatSel = isDeptSel && catSel === cat.name;
                               const isCatExpanded = expandedCats.has(catKey);
 
                               return (
                                 <li key={cat.name}>
                                   <div
                                     className={cn(
-                                      "group flex w-full items-center gap-1 rounded-md transition-all",
+                                      "group flex w-full items-start gap-0.5 rounded-lg transition-all",
                                       "duration-[var(--duration-fast)] ease-[var(--ease-premium)]",
                                       isCatSel && !subcatSel
-                                        ? "bg-info/8 shadow-[inset_3px_0_0_var(--color-info)]"
+                                        ? "bg-info/10 shadow-[inset_3px_0_0_var(--color-info)]"
                                         : "hover:bg-surface-2",
                                     )}
                                   >
                                     <button
-                                      onClick={() =>
-                                        toggleCat(dept.name, cat.name)
-                                      }
-                                      className="flex h-7 w-6 shrink-0 items-center justify-center rounded text-faint transition-colors hover:bg-surface-3 hover:text-muted"
-                                      aria-label={
-                                        isCatExpanded ? "Colapsar" : "Expandir"
-                                      }
+                                      onClick={() => toggleCat(dept.name, cat.name)}
+                                      className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded text-faint transition-colors hover:bg-surface-3 hover:text-muted"
+                                      aria-label={isCatExpanded ? "Colapsar" : "Expandir"}
                                     >
                                       <ChevronRight
                                         className={cn(
@@ -814,98 +826,73 @@ export default function VentasJerarquicasPage() {
                                     </button>
 
                                     <button
-                                      onClick={() =>
-                                        selectCat(dept.name, cat.name)
-                                      }
-                                      className="flex min-w-0 flex-1 items-center gap-2 py-1.5 pr-3 text-left"
+                                      onClick={() => selectCat(dept.name, cat.name)}
+                                      className="relative flex min-w-0 flex-1 flex-col justify-center py-2 pr-3 text-left"
                                     >
-                                      <FolderOpen
-                                        className={cn(
-                                          "h-3.5 w-3.5 shrink-0",
-                                          isCatSel ? "text-info" : "text-faint",
-                                        )}
-                                      />
-                                      <div className="min-w-0 flex-1">
-                                        <p className="truncate text-caption font-medium text-fg">
-                                          {cat.name}
-                                        </p>
-                                        <div className="mt-0.5 flex items-center gap-2">
-                                          <ProgressBar pct={cat.pct} tone="info" />
-                                          <span className="shrink-0 text-[0.55rem] tabular-nums text-faint">
-                                            {pct(cat.pct * 100)}
-                                          </span>
+                                      <div className="flex items-center justify-between gap-2 w-full mb-1">
+                                        <div className="flex items-center gap-2 min-w-0">
+                                          <FolderOpen className={cn("h-3 w-3 shrink-0 transition-colors", isCatSel ? "text-info" : "text-faint")} />
+                                          <p className={cn("truncate text-[0.7rem] font-medium transition-colors", isCatSel ? "text-info-fg font-semibold" : "text-fg/80")}>
+                                            {cat.name}
+                                          </p>
                                         </div>
-                                      </div>
-                                      <div className="flex shrink-0 items-center gap-1.5">
-                                        <HealthBadge paraComprar={cat.paraComprar} saludables={cat.saludables} compact />
-                                        <div className="text-right">
-                                          <p className="font-mono text-[0.65rem] tabular-nums font-semibold text-fg">
+                                        <div className="flex items-center gap-1.5 shrink-0">
+                                          <HealthBadge paraComprar={cat.paraComprar} saludables={cat.saludables} compact />
+                                          <p className="font-mono text-[0.7rem] tabular-nums font-semibold text-fg/90 shrink-0">
                                             {money(cat.ventas)}
                                           </p>
-                                          <p className="text-[0.55rem] tabular-nums text-faint">
-                                            {num(cat.skuCount)} SKUs
-                                          </p>
                                         </div>
+                                      </div>
+                                      
+                                      <div className="flex items-center gap-2 w-full pl-5 mb-1.5 pr-1">
+                                         <ProgressBar pct={cat.pct} tone="info" />
+                                         <div className="flex items-center gap-1.5 text-[0.6rem] text-faint shrink-0 tabular-nums">
+                                            <span>{pct(cat.pct * 100)}</span>
+                                            <span>•</span>
+                                            <span>{num(cat.skuCount)} SKUs</span>
+                                         </div>
                                       </div>
                                     </button>
                                   </div>
 
                                   {isCatExpanded && cat.subcats.length > 0 && (
-                                    <ul className="ml-3 animate-tree-expand overflow-hidden border-l border-border-soft/30 pl-1">
+                                    <ul className="ml-3 mt-0.5 mb-1 animate-tree-expand overflow-hidden border-l border-white/5 pl-1.5 flex flex-col gap-0.5">
                                       {cat.subcats.map((subcat) => {
-                                        const isSubcatSel =
-                                          isCatSel &&
-                                          subcatSel === subcat.name;
+                                        const isSubcatSel = isCatSel && subcatSel === subcat.name;
 
                                         return (
                                           <li key={subcat.name}>
                                             <button
-                                              onClick={() =>
-                                                selectSubcat(
-                                                  dept.name,
-                                                  cat.name,
-                                                  subcat.name,
-                                                )
-                                              }
+                                              onClick={() => selectSubcat(dept.name, cat.name, subcat.name)}
                                               className={cn(
-                                                "group flex w-full items-center gap-2 rounded py-1.5 pl-5 pr-3 text-left transition-all",
+                                                "group relative flex w-full flex-col justify-center py-2 pl-4 pr-3 text-left transition-all rounded-md",
                                                 "duration-[var(--duration-fast)] ease-[var(--ease-premium)]",
                                                 isSubcatSel
-                                                  ? "bg-violet/8 shadow-[inset_3px_0_0_var(--color-violet)]"
+                                                  ? "bg-violet/10 shadow-[inset_3px_0_0_var(--color-violet)]"
                                                   : "hover:bg-surface-2",
                                               )}
                                             >
-                                              <Tag
-                                                className={cn(
-                                                  "h-3 w-3 shrink-0",
-                                                  isSubcatSel
-                                                    ? "text-violet"
-                                                    : "text-faint",
-                                                )}
-                                              />
-                                              <div className="min-w-0 flex-1">
-                                                <p className="truncate text-[0.65rem] font-medium text-fg">
-                                                  {subcat.name}
-                                                </p>
-                                                <div className="mt-0.5 flex items-center gap-2">
-                                                  <ProgressBar
-                                                    pct={subcat.pct}
-                                                    tone="violet"
-                                                  />
-                                                  <span className="shrink-0 text-[0.5rem] tabular-nums text-faint">
-                                                    {pct(subcat.pct * 100)}
-                                                  </span>
+                                              <div className="flex items-center justify-between gap-2 w-full mb-0.5">
+                                                <div className="flex items-center gap-2 min-w-0">
+                                                  <Tag className={cn("h-3 w-3 shrink-0 transition-colors", isSubcatSel ? "text-violet" : "text-faint")} />
+                                                  <p className={cn("truncate text-[0.65rem] transition-colors", isSubcatSel ? "text-violet-fg font-semibold" : "text-fg/80 font-medium")}>
+                                                    {subcat.name}
+                                                  </p>
                                                 </div>
-                                              </div>
-                                              <div className="flex shrink-0 items-center gap-1.5">
-                                                <HealthBadge paraComprar={subcat.paraComprar} saludables={subcat.saludables} compact />
-                                                <div className="text-right">
-                                                  <p className="font-mono text-[0.6rem] tabular-nums font-semibold text-fg">
+                                                <div className="flex items-center gap-1.5 shrink-0">
+                                                  <HealthBadge paraComprar={subcat.paraComprar} saludables={subcat.saludables} compact />
+                                                  <p className="font-mono text-[0.65rem] tabular-nums font-semibold text-fg/90 shrink-0">
                                                     {money(subcat.ventas)}
                                                   </p>
-                                                  <p className="text-[0.5rem] tabular-nums text-faint">
-                                                    {num(subcat.skuCount)} SKUs
-                                                  </p>
+                                                </div>
+                                              </div>
+                                              
+                                              <div className="flex items-center gap-2 w-full pl-5 pr-1">
+                                                <ProgressBar pct={subcat.pct} tone="violet" />
+                                                <div className="flex items-center gap-1 text-[0.55rem] text-faint shrink-0 tabular-nums">
+                                                  <span>{pct(subcat.pct * 100)}</span>
+                                                  <span>•</span>
+                                                  <span>{num(subcat.skuCount)} SKUs</span>
                                                 </div>
                                               </div>
                                             </button>
@@ -927,225 +914,13 @@ export default function VentasJerarquicasPage() {
             </Card>
           </aside>
 
-          <div className="flex h-[calc(100vh-7rem)] flex-col overflow-hidden bg-surface-2 rounded-xl border border-border-soft">
-            {/* Toolbar superior */}
-            <div className="flex items-center gap-2 border-b border-border-soft bg-surface px-4 py-3">
-              <div className="relative flex-1">
-                <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" />
-                <Input
-                  placeholder="Buscar SKU o producto..."
-                  value={busqueda}
-                  onChange={(e) => setBusqueda(e.target.value)}
-                  className="h-9 bg-bg pl-9"
-                />
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className={cn(
-                  "h-9 shrink-0 transition-colors",
-                  showFilters
-                    ? "border-violet bg-violet text-white shadow-sm shadow-violet/30 hover:bg-violet/90"
-                    : hasActiveFilters
-                      ? "border-violet/50 bg-violet/20 text-violet hover:bg-violet/30 hover:border-violet/70"
-                      : "border-violet/30 bg-violet/10 text-violet hover:bg-violet/20 hover:border-violet/50",
-                )}
-                onClick={() => setShowFilters((v) => !v)}
-                aria-pressed={showFilters}
-                title="Filtros avanzados"
-              >
-                <Filter className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Filtros</span>
-                {hasActiveFilters && (
-                  <span
-                    className={cn(
-                      "ml-0.5 inline-block h-1.5 w-1.5 rounded-full",
-                      showFilters ? "bg-white" : "bg-violet",
-                    )}
-                    aria-label="Filtros activos"
-                  />
-                )}
-              </Button>
-              <a
-                href={matrixExcelUrl("04b", {
-                  sucursal: sucursalName ?? undefined,
-                })}
-                target="_blank"
-                rel="noopener"
-              >
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-9 shrink-0 border-success/40 bg-success/12 text-success transition-colors hover:bg-success/25 hover:border-success/60"
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Excel</span>
-                </Button>
-              </a>
-            </div>
-
-            {/* Panel de filtros (despliega bajo la toolbar) */}
-            {showFilters && (
-              <div className="border-b border-border-soft bg-surface-2/60 p-4 shadow-inner">
-                <div className="mx-auto flex flex-col gap-4 animate-tree-expand">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-fg">Filtros de Productos</h3>
-                    {hasActiveFilters && (
-                      <button
-                        onClick={() => { setFStock("todos"); setFDias("todos"); setFMesIngreso(new Set()); setFXYZ("todos"); setFTendencia("todos"); setFCobertura("todos"); }}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-danger/20 bg-danger/10 px-3 py-1.5 text-[0.65rem] font-semibold text-danger transition-colors hover:bg-danger/20 hover:border-danger/30"
-                      >
-                        <X className="h-3 w-3" /> Limpiar filtros
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Filtros Básicos Grid */}
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {/* Stock Block */}
-                    <div className="flex flex-col gap-2 rounded-xl border border-border-soft bg-surface p-3 shadow-sm transition-shadow hover:shadow-md">
-                      <div className="flex items-center gap-2 text-faint mb-0.5">
-                        <Package className="h-4 w-4" />
-                        <span className="text-xs font-semibold uppercase tracking-wider text-muted">Stock Disponible</span>
-                      </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        <FilterChip label="Todos" active={fStock === "todos"} onClick={() => setFStock("todos")} />
-                        <FilterChip label="Con stock" count={allRows.filter(r => n(r["Stock Disp"]) > 0).length} active={fStock === "con_stock"} onClick={() => setFStock("con_stock")} tone="success" />
-                        <FilterChip label="Agotado" count={allRows.filter(r => n(r["Stock Disp"]) <= 0).length} active={fStock === "sin_stock"} onClick={() => setFStock("sin_stock")} tone="danger" />
-                      </div>
-                    </div>
-
-                    {/* Estancamiento Block */}
-                    <div className="flex flex-col gap-2 rounded-xl border border-border-soft bg-surface p-3 shadow-sm transition-shadow hover:shadow-md">
-                      <div className="flex items-center gap-2 text-faint mb-0.5">
-                        <Timer className="h-4 w-4" />
-                        <span className="text-xs font-semibold uppercase tracking-wider text-muted">Estancamiento</span>
-                      </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        <FilterChip label="Todos" active={fDias === "todos"} onClick={() => setFDias("todos")} />
-                        <FilterChip label=">7 días" count={allRows.filter(r => n(r["Días sin Vender"]) >= 7).length} active={fDias === "7"} onClick={() => setFDias("7")} tone="warning" />
-                        <FilterChip label=">15 días" count={allRows.filter(r => n(r["Días sin Vender"]) >= 15).length} active={fDias === "15"} onClick={() => setFDias("15")} tone="warning" />
-                        <FilterChip label=">30 días" count={allRows.filter(r => n(r["Días sin Vender"]) >= 30).length} active={fDias === "30"} onClick={() => setFDias("30")} tone="danger" />
-                      </div>
-                    </div>
-
-                    {/* Mes de Ingreso Block */}
-                    <div className="flex flex-col gap-2 rounded-xl border border-border-soft bg-surface p-3 shadow-sm transition-shadow hover:shadow-md">
-                      <div className="flex items-center gap-2 text-faint mb-0.5">
-                        <Calendar className="h-4 w-4" />
-                        <span className="text-xs font-semibold uppercase tracking-wider text-muted">Mes de Ingreso</span>
-                      </div>
-                      <div className="relative">
-                        <button
-                          onClick={() => setMesDropdownOpen(!mesDropdownOpen)}
-                          className={cn(
-                            "flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm font-semibold transition-all duration-[var(--duration-fast)]",
-                            fMesIngreso.size > 0
-                              ? "border-violet/40 bg-violet/12 text-violet shadow-sm"
-                              : "border-border-soft bg-surface-2 text-muted hover:bg-surface-3 hover:text-fg hover:border-border",
-                          )}
-                        >
-                          <span className="flex items-center gap-2 text-xs">
-                            {fMesIngreso.size === 0 ? "Todos los meses" : `${fMesIngreso.size} meses seleccionados`}
-                          </span>
-                          <ChevronRight className={cn("h-4 w-4 transition-transform", mesDropdownOpen && "rotate-90")} />
-                        </button>
-                        {mesDropdownOpen && (
-                          <div className="absolute left-0 top-full z-50 mt-1 max-h-52 w-full overflow-y-auto rounded-lg border border-border-soft bg-surface shadow-card py-1">
-                            {mesesDisponibles.map(ym => {
-                              const [y, m] = ym.split("-");
-                              const d = new Date(parseInt(y), parseInt(m) - 1, 1);
-                              const name = new Intl.DateTimeFormat('es-PE', { month: 'long', year: 'numeric' }).format(d);
-                              const label = name.charAt(0).toUpperCase() + name.slice(1);
-                              return (
-                                <label key={ym} className="flex cursor-pointer items-center gap-3 px-3 py-2 hover:bg-surface-2 text-sm text-fg transition-colors">
-                                  <input type="checkbox" checked={fMesIngreso.has(ym)}
-                                    onChange={(e) => { setFMesIngreso(prev => { const next = new Set(prev); if (e.target.checked) next.add(ym); else next.delete(ym); return next; }); }}
-                                    className="rounded border-border-soft text-primary focus:ring-primary h-4 w-4 bg-surface-2"
-                                  />
-                                  {label}
-                                </label>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Toggle Filtros Avanzados */}
-                  <div className="relative mt-2 flex items-center justify-center">
-                    <div className="absolute left-0 right-0 top-1/2 h-px -translate-y-1/2 bg-border-soft/50" />
-                    <button 
-                      onClick={() => setShowAdvancedFilters(prev => !prev)}
-                      className={cn(
-                        "group relative z-10 flex items-center gap-2 rounded-full border border-border-soft bg-surface px-5 py-1.5 text-[0.65rem] font-semibold uppercase tracking-wider text-muted transition-all hover:border-violet/40 hover:bg-violet/10 hover:text-violet",
-                        showAdvancedFilters && "border-violet/40 bg-violet/10 text-violet shadow-sm"
-                      )}
-                    >
-                      <Filter className="h-3.5 w-3.5" />
-                      {showAdvancedFilters ? "Ocultar Filtros Avanzados" : "Mostrar Filtros Avanzados"}
-                      {!showAdvancedFilters && hasActiveAdvancedFilters && (
-                        <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5 rounded-full bg-violet ring-2 ring-surface shadow-sm" title="Filtros avanzados activos" />
-                      )}
-                      <ChevronRight className={cn("h-3.5 w-3.5 transition-transform group-hover:translate-y-px", showAdvancedFilters && "rotate-90")} />
-                    </button>
-                  </div>
-
-                  {/* Filtros Avanzados Grid */}
-                  {showAdvancedFilters && (
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 animate-tree-expand">
-                      {/* XYZ */}
-                      <div className="flex flex-col gap-2 rounded-xl border border-violet/20 bg-violet/5 p-3 shadow-sm transition-shadow hover:shadow-md">
-                        <div className="flex items-center gap-2 text-violet/70 mb-0.5">
-                          <Target className="h-4 w-4" />
-                          <span className="text-xs font-semibold uppercase tracking-wider">Categorización XYZ</span>
-                        </div>
-                        <div className="flex flex-wrap gap-1.5">
-                          <FilterChip label="Todos" active={fXYZ === "todos"} onClick={() => setFXYZ("todos")} />
-                          <FilterChip label="X (frecuente)" count={allRows.filter(r => s(r["XYZ"]).toUpperCase().startsWith("X")).length} active={fXYZ === "X"} onClick={() => setFXYZ("X")} tone="success" />
-                          <FilterChip label="Y (moderado)" count={allRows.filter(r => s(r["XYZ"]).toUpperCase().startsWith("Y")).length} active={fXYZ === "Y"} onClick={() => setFXYZ("Y")} tone="info" />
-                          <FilterChip label="Z (esporádico)" count={allRows.filter(r => s(r["XYZ"]).toUpperCase().startsWith("Z")).length} active={fXYZ === "Z"} onClick={() => setFXYZ("Z")} tone="warning" />
-                        </div>
-                      </div>
-
-                      {/* Tendencia */}
-                      <div className="flex flex-col gap-2 rounded-xl border border-violet/20 bg-violet/5 p-3 shadow-sm transition-shadow hover:shadow-md">
-                        <div className="flex items-center gap-2 text-violet/70 mb-0.5">
-                          <BarChart2 className="h-4 w-4" />
-                          <span className="text-xs font-semibold uppercase tracking-wider">Tendencia</span>
-                        </div>
-                        <div className="flex flex-wrap gap-1.5">
-                          <FilterChip label="Todos" active={fTendencia === "todos"} onClick={() => setFTendencia("todos")} />
-                          <FilterChip label="↑ Creciendo" count={allRows.filter(r => s(r["Tendencia"]).toUpperCase().includes("CRECIENDO")).length} active={fTendencia === "creciendo"} onClick={() => setFTendencia("creciendo")} tone="success" />
-                          <FilterChip label="→ Estable" count={allRows.filter(r => { const t = s(r["Tendencia"]).toUpperCase(); return !t.includes("CRECIENDO") && !t.includes("BAJANDO"); }).length} active={fTendencia === "estable"} onClick={() => setFTendencia("estable")} tone="info" />
-                          <FilterChip label="↓ Bajando" count={allRows.filter(r => s(r["Tendencia"]).toUpperCase().includes("BAJANDO")).length} active={fTendencia === "bajando"} onClick={() => setFTendencia("bajando")} tone="danger" />
-                        </div>
-                      </div>
-
-                      {/* Cobertura */}
-                      <div className="flex flex-col gap-2 rounded-xl border border-violet/20 bg-violet/5 p-3 shadow-sm transition-shadow hover:shadow-md">
-                        <div className="flex items-center gap-2 text-violet/70 mb-0.5">
-                          <ShieldAlert className="h-4 w-4" />
-                          <span className="text-xs font-semibold uppercase tracking-wider">Cobertura</span>
-                        </div>
-                        <div className="flex flex-wrap gap-1.5">
-                          <FilterChip label="Todos" active={fCobertura === "todos"} onClick={() => setFCobertura("todos")} />
-                          <FilterChip label="🚨 < 10d" count={allRows.filter(r => n(r["Cobertura"]) <= 10).length} active={fCobertura === "critica_10"} onClick={() => setFCobertura("critica_10")} tone="danger" />
-                          <FilterChip label="Crítica <15d" count={allRows.filter(r => n(r["Cobertura"]) < 15).length} active={fCobertura === "critica"} onClick={() => setFCobertura("critica")} tone="danger" />
-                          <FilterChip label="Baja 15–30d" count={allRows.filter(r => { const c = n(r["Cobertura"]); return c >= 15 && c <= 30; }).length} active={fCobertura === "baja"} onClick={() => setFCobertura("baja")} tone="warning" />
-                          <FilterChip label="OK >30d" count={allRows.filter(r => n(r["Cobertura"]) > 30).length} active={fCobertura === "ok"} onClick={() => setFCobertura("ok")} tone="success" />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Tabs de categoría Kanban */}
-            <div className="border-b border-border-soft bg-surface-2/40">
-              <div className="flex gap-1.5 overflow-x-auto px-2 py-2 custom-scrollbar">
+          <div className="flex h-[calc(100vh-7rem)] flex-col overflow-hidden bg-surface-2/30 backdrop-blur-2xl rounded-2xl border border-white/5 shadow-[0_12px_48px_rgba(0,0,0,0.4)] relative">
+                        {/* Ambient glow behind main area */}
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-violet/5 pointer-events-none" />
+            
+            {/* Tabs de categoría Kanban (Segmented Control style) */}
+            <div className="border-b border-white/5 bg-surface-2/40 relative z-10">
+              <div className="flex gap-2 overflow-x-auto px-5 py-3 custom-scrollbar">
                 {KANBAN_COLS.map((col) => {
                   const count = tabCounts[col.id];
                   const isActive = activeTab === col.id;
@@ -1155,30 +930,38 @@ export default function VentasJerarquicasPage() {
                       key={col.id}
                       onClick={() => setActiveTab(col.id)}
                       className={cn(
-                        "group flex shrink-0 items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm font-semibold transition-all duration-[var(--duration-fast)]",
+                        "group flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold transition-all duration-[var(--duration-fast)]",
                         isActive
                           ? TAB_ACTIVE_BORDER[col.tone]
-                          : "border-transparent text-muted hover:bg-surface-2 hover:text-fg",
+                          : "border-transparent text-muted hover:bg-surface-2 hover:text-fg hover:border-white/10",
+                        isActive && "shadow-sm"
                       )}
                       aria-pressed={isActive}
                       title={col.label}
                     >
                       <span
                         className={cn(
-                          "flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors",
+                          "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors",
                           isActive ? TAB_TONE_ACTIVE[col.tone] : TAB_TONE_INACTIVE[col.tone],
                         )}
                         aria-hidden="true"
                       >
                         <Icon className="h-4 w-4" strokeWidth={2.25} />
                       </span>
-                      <span className={cn(isActive ? "text-fg" : "")}>
+                      <span
+                        className={cn(
+                          "overflow-hidden whitespace-nowrap transition-all duration-300 ease-in-out",
+                          isActive
+                            ? "max-w-[200px] opacity-100 text-fg"
+                            : "max-w-0 opacity-0 group-hover:max-w-[200px] group-hover:opacity-100"
+                        )}
+                      >
                         <span className="hidden md:inline">{col.label}</span>
                         <span className="md:hidden">{col.short}</span>
                       </span>
                       <span
                         className={cn(
-                          "rounded-full px-1.5 py-0.5 text-[0.6rem] font-bold tabular-nums",
+                          "rounded-full px-2 py-0.5 text-[0.65rem] font-bold tabular-nums",
                           isActive ? TAB_BADGE_ACTIVE[col.tone] : TAB_BADGE_INACTIVE[col.tone],
                         )}
                       >
@@ -1190,14 +973,305 @@ export default function VentasJerarquicasPage() {
               </div>
             </div>
 
+            {/* Toolbar superior (Búsqueda, Filtros, Excel) */}
+            <div className="flex flex-col gap-3 border-b border-white/5 bg-surface/60 px-5 py-3 relative z-10 backdrop-blur-md">
+              <div className="flex items-center gap-3">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
+                  <Input
+                    placeholder="Buscar SKU o producto..."
+                    value={busqueda}
+                    onChange={(e) => setBusqueda(e.target.value)}
+                    className="h-10 bg-black/20 pl-9 border-white/10 hover:border-white/20 focus:border-primary focus:ring-primary/30 transition-all rounded-lg shadow-inner text-sm"
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    "h-10 shrink-0 transition-colors rounded-lg px-4",
+                    showFilters
+                      ? "border-violet bg-violet text-white shadow-sm shadow-violet/30 hover:bg-violet/90"
+                      : hasActiveFilters
+                        ? "border-violet/50 bg-violet/20 text-violet hover:bg-violet/30 hover:border-violet/70"
+                        : "border-violet/30 bg-violet/10 text-violet hover:bg-violet/20 hover:border-violet/50",
+                  )}
+                  onClick={() => setShowFilters((v) => !v)}
+                  aria-pressed={showFilters}
+                  title="Filtros avanzados"
+                >
+                  <Filter className="h-4 w-4" />
+                  <span className="hidden sm:inline font-semibold">Filtros</span>
+                  {hasActiveFilters && (
+                    <span
+                      className={cn(
+                        "ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full text-[0.6rem] font-bold",
+                        showFilters ? "bg-white text-violet" : "bg-violet text-white",
+                      )}
+                      aria-label="Filtros activos"
+                    >
+                      !
+                    </span>
+                  )}
+                </Button>
+                <a
+                  href={matrixExcelUrl("04b", {
+                    sucursal: sucursalName ?? undefined,
+                  })}
+                  target="_blank"
+                  rel="noopener"
+                >
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-10 shrink-0 rounded-lg border-success/40 bg-success/12 text-success transition-colors hover:bg-success/25 hover:border-success/60 px-4 font-semibold"
+                  >
+                    <Download className="h-4 w-4" />
+                    <span className="hidden sm:inline">Excel</span>
+                  </Button>
+                </a>
+              </div>
+
+              {/* Active Filters Badges */}
+              {hasActiveFilters && (
+                <div className="flex flex-wrap items-center gap-2 animate-[fade-in-up_var(--duration-fast)_var(--ease-premium)_both]">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted mr-1">Filtros Activos:</span>
+                  {fStock !== "todos" && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-surface-3 pl-2 pr-1 py-1 text-xs text-fg shadow-sm border border-white/5">
+                      Stock: {fStock === "con_stock" ? "Con stock" : "Agotado"}
+                      <button onClick={() => setFStock("todos")} className="rounded-full p-0.5 hover:bg-surface-active"><X className="h-3 w-3" /></button>
+                    </span>
+                  )}
+                  {fDias !== "todos" && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-surface-3 pl-2 pr-1 py-1 text-xs text-fg shadow-sm border border-white/5">
+                      Estancamiento: &gt;{fDias} días
+                      <button onClick={() => setFDias("todos")} className="rounded-full p-0.5 hover:bg-surface-active"><X className="h-3 w-3" /></button>
+                    </span>
+                  )}
+                  {fMesIngreso.size > 0 && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-surface-3 pl-2 pr-1 py-1 text-xs text-fg shadow-sm border border-white/5">
+                      Meses: {fMesIngreso.size} selec.
+                      <button onClick={() => setFMesIngreso(new Set())} className="rounded-full p-0.5 hover:bg-surface-active"><X className="h-3 w-3" /></button>
+                    </span>
+                  )}
+                  {fXYZ !== "todos" && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-surface-3 pl-2 pr-1 py-1 text-xs text-fg shadow-sm border border-white/5">
+                      XYZ: {fXYZ}
+                      <button onClick={() => setFXYZ("todos")} className="rounded-full p-0.5 hover:bg-surface-active"><X className="h-3 w-3" /></button>
+                    </span>
+                  )}
+                  {fTendencia !== "todos" && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-surface-3 pl-2 pr-1 py-1 text-xs text-fg shadow-sm border border-white/5">
+                      Tendencia: {fTendencia}
+                      <button onClick={() => setFTendencia("todos")} className="rounded-full p-0.5 hover:bg-surface-active"><X className="h-3 w-3" /></button>
+                    </span>
+                  )}
+                  {fCobertura !== "todos" && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-surface-3 pl-2 pr-1 py-1 text-xs text-fg shadow-sm border border-white/5">
+                      Cobertura: {fCobertura}
+                      <button onClick={() => setFCobertura("todos")} className="rounded-full p-0.5 hover:bg-surface-active"><X className="h-3 w-3" /></button>
+                    </span>
+                  )}
+                  
+                  <button 
+                    onClick={() => { setFStock("todos"); setFDias("todos"); setFMesIngreso(new Set()); setFXYZ("todos"); setFTendencia("todos"); setFCobertura("todos"); }}
+                    className="ml-auto text-[0.7rem] font-semibold text-danger hover:underline"
+                  >
+                    Limpiar todos
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Panel Lateral de Filtros (Drawer) */}
+            {showFilters && (
+              <div className="absolute inset-0 z-50 flex justify-end">
+                {/* Backdrop */}
+                <div 
+                  className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-[fade-in_var(--duration-fast)_ease-out]" 
+                  onClick={() => setShowFilters(false)}
+                />
+                
+                {/* Panel lateral */}
+                <div className="relative w-full max-w-sm flex flex-col bg-surface border-l border-white/10 shadow-2xl animate-[slide-in-right_var(--duration-slow)_var(--ease-premium)] h-full overflow-hidden">
+                  <div className="flex items-center justify-between border-b border-white/10 p-4 bg-surface/50 backdrop-blur-md">
+                    <h3 className="text-lg font-bold text-fg flex items-center gap-2">
+                      <Filter className="h-5 w-5 text-violet" />
+                      Filtros Avanzados
+                    </h3>
+                    <button 
+                      onClick={() => setShowFilters(false)}
+                      className="p-2 rounded-full hover:bg-white/10 text-muted hover:text-fg transition-colors"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
+                  
+                                    <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+                    <div className="flex flex-col gap-6">
+                      
+                                            {/* Mes de Ingreso Block (Básico) */}
+                      <div className="flex flex-col gap-3">
+                        <div className="flex flex-col gap-1 mb-0.5">
+                          <div className="flex items-center gap-2 text-faint">
+                            <Calendar className="h-4 w-4" />
+                            <span className="text-xs font-bold uppercase tracking-wider text-muted">Mes de Ingreso</span>
+                          </div>
+                          <p className="text-[0.65rem] text-faint/80 pl-6 leading-tight">Filtra los productos por su fecha de lanzamiento o primer ingreso al sistema.</p>
+                        </div>
+                        <div className="flex flex-wrap gap-2 pl-6 max-h-[160px] overflow-y-auto custom-scrollbar pr-2 pb-1">
+                          <FilterChip 
+                            label="Todos" 
+                            active={fMesIngreso.size === 0} 
+                            onClick={() => setFMesIngreso(new Set())} 
+                          />
+                          {mesesDisponibles.map(ym => {
+                            const [y, m] = ym.split("-");
+                            const d = new Date(parseInt(y), parseInt(m) - 1, 1);
+                            const name = new Intl.DateTimeFormat('es-PE', { month: 'short', year: '2-digit' }).format(d);
+                            const label = name.charAt(0).toUpperCase() + name.slice(1);
+                            return (
+                              <FilterChip
+                                key={ym}
+                                label={label}
+                                count={allRows.filter(r => { const c = r["Primer Ingreso"]; return typeof c === "string" && c.startsWith(ym); }).length}
+                                active={fMesIngreso.has(ym)}
+                                onClick={() => setFMesIngreso(prev => {
+                                  const next = new Set(prev);
+                                  if (next.has(ym)) next.delete(ym);
+                                  else next.add(ym);
+                                  return next;
+                                })}
+                                tone="violet"
+                              />
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Cobertura Block (Básico) */}
+                      <div className="flex flex-col gap-3">
+                        <div className="flex flex-col gap-1 mb-0.5">
+                          <div className="flex items-center gap-2 text-faint">
+                            <ShieldAlert className="h-4 w-4" />
+                            <span className="text-xs font-bold uppercase tracking-wider text-muted">Cobertura</span>
+                          </div>
+                          <p className="text-[0.65rem] text-faint/80 pl-6 leading-tight">Días de inventario restante. Ayuda a identificar quiebres de stock inminentes.</p>
+                        </div>
+                        <div className="flex flex-wrap gap-2 pl-6">
+                          <FilterChip label="Todos" active={fCobertura === "todos"} onClick={() => setFCobertura("todos")} />
+                          <FilterChip label="🚨 Crítico (Menos de 10 días)" count={allRows.filter(r => n(r["Cobertura"]) <= 10).length} active={fCobertura === "critica_10"} onClick={() => setFCobertura("critica_10")} tone="danger" />
+                          <FilterChip label="⚠️ Alerta (Entre 10 y 15 días)" count={allRows.filter(r => n(r["Cobertura"]) < 15 && n(r["Cobertura"]) > 10).length} active={fCobertura === "critica"} onClick={() => setFCobertura("critica")} tone="danger" />
+                          <FilterChip label="📉 Bajo (Entre 15 y 30 días)" count={allRows.filter(r => { const c = n(r["Cobertura"]); return c >= 15 && c <= 30; }).length} active={fCobertura === "baja"} onClick={() => setFCobertura("baja")} tone="warning" />
+                          <FilterChip label="✅ Óptimo (Más de 30 días)" count={allRows.filter(r => n(r["Cobertura"]) > 30).length} active={fCobertura === "ok"} onClick={() => setFCobertura("ok")} tone="success" />
+                        </div>
+                      </div>
+                      {/* Separator / Búsqueda Avanzada Toggle */}
+                      <div className="mt-2 border-t border-white/5 pt-4">
+                        <button
+                          onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                          className="flex items-center gap-2 text-sm font-semibold text-muted hover:text-fg transition-colors w-full group"
+                        >
+                          <span className="flex-1 text-left">Búsqueda Avanzada</span>
+                          <ChevronRight className={cn("h-4 w-4 transition-transform group-hover:text-fg", showAdvancedFilters && "rotate-90")} />
+                        </button>
+                      </div>
+
+                                            
+                      {/* Búsqueda Avanzada */}
+                      {showAdvancedFilters && (
+                        <div className="flex flex-col gap-6 animate-in slide-in-from-top-4 fade-in duration-300 pb-10">
+                          {/* Stock Block */}
+                          <div className="flex flex-col gap-3">
+                            <div className="flex flex-col gap-1 mb-0.5">
+                              <div className="flex items-center gap-2 text-faint">
+                                <Package className="h-4 w-4" />
+                                <span className="text-xs font-bold uppercase tracking-wider text-muted">Stock Disponible</span>
+                              </div>
+                              <p className="text-[0.65rem] text-faint/80 pl-6 leading-tight">Muestra únicamente los productos que actualmente tienen o no inventario físico en el almacén.</p>
+                            </div>
+                            <div className="flex flex-wrap gap-2 pl-6">
+                              <FilterChip label="Todos" active={fStock === "todos"} onClick={() => setFStock("todos")} />
+                              <FilterChip label="Con stock" count={allRows.filter(r => n(r["Stock Disp"]) > 0).length} active={fStock === "con_stock"} onClick={() => setFStock("con_stock")} tone="success" />
+                              <FilterChip label="Agotado" count={allRows.filter(r => n(r["Stock Disp"]) <= 0).length} active={fStock === "sin_stock"} onClick={() => setFStock("sin_stock")} tone="danger" />
+                            </div>
+                          </div>
+
+                          {/* Estancamiento Block */}
+                          <div className="flex flex-col gap-3">
+                            <div className="flex flex-col gap-1 mb-0.5">
+                              <div className="flex items-center gap-2 text-faint">
+                                <Timer className="h-4 w-4" />
+                                <span className="text-xs font-bold uppercase tracking-wider text-muted">Estancamiento</span>
+                              </div>
+                              <p className="text-[0.65rem] text-faint/80 pl-6 leading-tight">Días consecutivos sin registrar ninguna venta. Útil para identificar productos "hueso".</p>
+                            </div>
+                            <div className="flex flex-wrap gap-2 pl-6">
+                              <FilterChip label="Todos" active={fDias === "todos"} onClick={() => setFDias("todos")} />
+                              <FilterChip label=">7 días" count={allRows.filter(r => n(r["Días sin Vender"]) >= 7).length} active={fDias === "7"} onClick={() => setFDias("7")} tone="warning" />
+                              <FilterChip label=">15 días" count={allRows.filter(r => n(r["Días sin Vender"]) >= 15).length} active={fDias === "15"} onClick={() => setFDias("15")} tone="warning" />
+                              <FilterChip label=">30 días" count={allRows.filter(r => n(r["Días sin Vender"]) >= 30).length} active={fDias === "30"} onClick={() => setFDias("30")} tone="danger" />
+                            </div>
+                          </div>
+
+                          {/* XYZ */}
+                          <div className="flex flex-col gap-3">
+                            <div className="flex flex-col gap-1 mb-0.5">
+                              <div className="flex items-center gap-2 text-faint">
+                                <Target className="h-4 w-4" />
+                                <span className="text-xs font-bold uppercase tracking-wider text-muted">Categorización XYZ</span>
+                              </div>
+                              <p className="text-[0.65rem] text-faint/80 pl-6 leading-tight">Clasificación por predictibilidad de ventas. X = estable, Y = estacional, Z = errático.</p>
+                            </div>
+                            <div className="flex flex-wrap gap-2 pl-6">
+                              <FilterChip label="Todos" active={fXYZ === "todos"} onClick={() => setFXYZ("todos")} />
+                              <FilterChip label="X (frecuente)" count={allRows.filter(r => s(r["XYZ"]).toUpperCase().startsWith("X")).length} active={fXYZ === "X"} onClick={() => setFXYZ("X")} tone="success" />
+                              <FilterChip label="Y (moderado)" count={allRows.filter(r => s(r["XYZ"]).toUpperCase().startsWith("Y")).length} active={fXYZ === "Y"} onClick={() => setFXYZ("Y")} tone="info" />
+                              <FilterChip label="Z (esporádico)" count={allRows.filter(r => s(r["XYZ"]).toUpperCase().startsWith("Z")).length} active={fXYZ === "Z"} onClick={() => setFXYZ("Z")} tone="warning" />
+                            </div>
+                          </div>
+
+                          {/* Tendencia */}
+                          <div className="flex flex-col gap-3">
+                            <div className="flex flex-col gap-1 mb-0.5">
+                              <div className="flex items-center gap-2 text-faint">
+                                <BarChart2 className="h-4 w-4" />
+                                <span className="text-xs font-bold uppercase tracking-wider text-muted">Tendencia</span>
+                              </div>
+                              <p className="text-[0.65rem] text-faint/80 pl-6 leading-tight">Dirección de la curva de ventas comparando el mes actual contra el histórico reciente.</p>
+                            </div>
+                            <div className="flex flex-wrap gap-2 pl-6">
+                              <FilterChip label="Todos" active={fTendencia === "todos"} onClick={() => setFTendencia("todos")} />
+                              <FilterChip label="↑ Creciendo" count={allRows.filter(r => s(r["Tendencia"]).toUpperCase().includes("CRECIENDO")).length} active={fTendencia === "creciendo"} onClick={() => setFTendencia("creciendo")} tone="success" />
+                              <FilterChip label="→ Estable" count={allRows.filter(r => { const t = s(r["Tendencia"]).toUpperCase(); return !t.includes("CRECIENDO") && !t.includes("BAJANDO"); }).length} active={fTendencia === "estable"} onClick={() => setFTendencia("estable")} tone="info" />
+                              <FilterChip label="↓ Bajando" count={allRows.filter(r => s(r["Tendencia"]).toUpperCase().includes("BAJANDO")).length} active={fTendencia === "bajando"} onClick={() => setFTendencia("bajando")} tone="danger" />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="border-t border-white/10 p-4 bg-surface/80 backdrop-blur-md flex justify-end gap-3">
+                    {hasActiveFilters && (
+                      <Button variant="ghost" onClick={() => { setFStock("todos"); setFDias("todos"); setFMesIngreso(new Set()); setFXYZ("todos"); setFTendencia("todos"); setFCobertura("todos"); }} className="text-danger hover:bg-danger/10 hover:text-danger">
+                        Limpiar
+                      </Button>
+                    )}
+                    <Button onClick={() => setShowFilters(false)} className="bg-violet hover:bg-violet/90 text-white shadow-md shadow-violet/20">
+                      Ver Resultados
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
             {/* Lista del tab activo (scroll interno) */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar bg-bg/30">
+            <div className="flex-1 overflow-y-auto custom-scrollbar bg-transparent relative z-10">
               {tabItems.length === 0 ? (
                 <div className="flex h-full items-center justify-center px-4 py-12 text-center text-sm text-faint">
                   No hay productos en esta categoría con los filtros actuales.
                 </div>
               ) : (
-                <div className="flex flex-col divide-y divide-border-soft/50">
+                <div className="flex flex-col py-2">
                   {pageItems.map((sku, i) => (
                     <ProductListItem
                       key={`${s(sku["Código SKU"])}-${(safePage - 1) * ITEMS_PER_PAGE + i}`}
@@ -1214,7 +1288,7 @@ export default function VentasJerarquicasPage() {
 
             {/* Pie de paginación */}
             {tabItems.length > 0 && (
-              <div className="flex flex-col gap-2 border-t border-border-soft bg-surface px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-2 border-t border-white/5 bg-surface-2/50 backdrop-blur-md px-5 py-3 sm:flex-row sm:items-center sm:justify-between relative z-10">
                 <p className="text-xs text-muted">
                   Mostrando <span className="font-bold text-fg tabular-nums">
                     {(safePage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(safePage * ITEMS_PER_PAGE, tabItems.length)}
@@ -1364,21 +1438,24 @@ function ProductListItem({
   const [v90, v30, p30] = getTrendMock(tendencia, clasif);
 
   return (
-    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-4 py-3 hover:bg-surface-2 transition-colors cursor-pointer group" onClick={onClick}>
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-4 py-3 hover:bg-surface-3/40 hover:shadow-lg transition-all duration-300 ease-out cursor-pointer group rounded-xl mx-2 my-1 border border-transparent hover:border-white/5 relative overflow-hidden" onClick={onClick}>
+      {/* Background glow on hover */}
+      <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+      
       {/* 1. Identificador */}
-      <div className="flex w-full sm:w-1/3 min-w-[200px] flex-col justify-center">
-        <p className="line-clamp-1 text-sm font-semibold text-indigo-400 group-hover:text-indigo-300 transition-colors" title={s(sku["Producto"])}>
+      <div className="flex w-full sm:w-1/3 min-w-[200px] flex-col justify-center relative z-10">
+        <p className="line-clamp-1 text-sm font-semibold text-fg group-hover:text-primary transition-colors duration-300" title={s(sku["Producto"])}>
           {s(sku["Producto"]) || "—"}
         </p>
-        <p className="font-mono text-xs text-faint mt-0.5">
-          {s(sku["Código SKU"])} <span className="mx-1">·</span> {s(sku["Categoría"])}
+        <p className="font-mono text-[0.65rem] text-faint mt-1">
+          {s(sku["Código SKU"])} <span className="mx-1 text-border">|</span> <span className="text-muted">{s(sku["Categoría"])}</span>
         </p>
-        <div className="flex items-center gap-1.5 mt-1.5">
-          <span className={cn("inline-flex items-center gap-1 text-[0.6rem] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded", meta.bgClass, meta.colorClass)}>
+        <div className="flex items-center gap-1.5 mt-2">
+          <span className={cn("inline-flex items-center gap-1 text-[0.6rem] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border border-white/5 shadow-sm", meta.bgClass, meta.colorClass)}>
             <Icon className="h-2.5 w-2.5" /> {shortClasif(clasif)}
           </span>
           {s(sku["XYZ"]) && (
-            <span className="inline-flex items-center text-[0.6rem] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-surface-3 text-muted">
+            <span className="inline-flex items-center text-[0.6rem] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded bg-surface-3 text-muted border border-white/5 shadow-sm">
               XYZ: {s(sku["XYZ"]).charAt(0)}
             </span>
           )}
@@ -1386,44 +1463,60 @@ function ProductListItem({
       </div>
 
       {/* 2. Visualización: Sparkline */}
-      <div className="flex flex-1 items-center gap-4">
-        <div className="w-24 shrink-0 hidden md:block" title={`Tendencia: ${tendencia || 'Estable'}`}>
-          <SmoothSparkline v90={v90} v30={v30} p30={p30} width={90} height={20} />
+      <div className="flex flex-1 items-center gap-4 relative z-10">
+        <div className="w-24 shrink-0 hidden md:block opacity-70 group-hover:opacity-100 transition-opacity duration-300" title={`Tendencia: ${tendencia || 'Estable'}`}>
+          <SmoothSparkline v90={v90} v30={v30} p30={p30} width={90} height={24} />
         </div>
       </div>
 
-      {/* 3. Métricas Numéricas Expandidas */}
-      <div className="flex items-center gap-4 sm:gap-6 text-right flex-wrap justify-end">
-        <div className="flex flex-col w-14">
-          <span className="text-[0.6rem] uppercase tracking-wider text-faint">Ventas</span>
-          <span className="font-mono text-xs font-medium text-fg">{moneyCompact(ventas)}</span>
+      {/* 3. Métricas Numéricas Expandidas (Re-diseñadas con Iconos) */}
+      <div className="flex items-center gap-3 sm:gap-5 text-right flex-wrap justify-end relative z-10">
+        <div className="flex flex-col w-20 items-end group/metric">
+          <span className="flex items-center gap-1 text-[0.55rem] uppercase tracking-widest text-faint mb-0.5">
+            <Banknote className="h-3 w-3 group-hover/metric:text-primary transition-colors" /> Ventas
+          </span>
+          <span className="font-mono text-[0.85rem] font-medium text-fg bg-surface-3/40 backdrop-blur-sm px-2 py-0.5 rounded text-right w-full border border-white/5 shadow-inner">
+            {moneyCompact(ventas)}
+          </span>
         </div>
-        <div className="flex flex-col w-10 hidden lg:flex">
-          <span className="text-[0.6rem] uppercase tracking-wider text-faint">Unds</span>
-          <span className="font-mono text-xs font-medium text-fg">{num(unidades)}</span>
+        <div className="flex flex-col w-16 hidden lg:flex items-end group/metric">
+          <span className="flex items-center gap-1 text-[0.55rem] uppercase tracking-widest text-faint mb-0.5">
+            <Package className="h-3 w-3 group-hover/metric:text-info transition-colors" /> Unds
+          </span>
+          <span className="font-mono text-[0.8rem] font-medium text-fg">{num(unidades)}</span>
         </div>
-        <div className="flex flex-col w-12">
-          <span className="text-[0.6rem] uppercase tracking-wider text-faint">Stock</span>
-          <span className={cn("font-mono text-xs font-bold", stock === 0 ? "text-danger" : "text-info")}>{num(stock)}</span>
+        <div className="flex flex-col w-16 items-end group/metric">
+          <span className="flex items-center gap-1 text-[0.55rem] uppercase tracking-widest text-faint mb-0.5">
+            <Box className="h-3 w-3 group-hover/metric:text-warning transition-colors" /> Stock
+          </span>
+          <span className={cn("font-mono text-[0.85rem] font-bold px-2 py-0.5 rounded w-full text-right shadow-[inset_0_1px_1px_rgba(0,0,0,0.3)] backdrop-blur-sm", stock === 0 ? "bg-danger/20 text-danger border border-danger/20" : "bg-info/20 text-info border border-info/20")}>
+            {num(stock)}
+          </span>
         </div>
-        <div className="flex flex-col w-14 hidden xl:flex">
-          <span className="text-[0.6rem] uppercase tracking-wider text-faint">Cobertura</span>
-          <span className={cn("font-mono text-xs font-medium", n(sku["Cobertura"]) < 15 ? "text-danger" : "text-fg")}>
+        <div className="flex flex-col w-16 hidden xl:flex items-end group/metric">
+          <span className="flex items-center gap-1 text-[0.55rem] uppercase tracking-widest text-faint mb-0.5">
+            <Target className="h-3 w-3 group-hover/metric:text-danger transition-colors" /> Cobert.
+          </span>
+          <span className={cn("font-mono text-[0.8rem] font-medium", n(sku["Cobertura"]) < 15 ? "text-danger drop-shadow-[0_0_8px_rgba(240,85,109,0.5)]" : "text-fg")}>
             {s(sku["Cobertura"]) || "—"}
           </span>
         </div>
-        <div className="flex flex-col w-14 hidden xl:flex">
-          <span className="text-[0.6rem] uppercase tracking-wider text-faint">Veloc.</span>
-          <span className="font-mono text-xs font-medium text-fg">{num2(sku["Velocidad (uds/día)"])} u/d</span>
+        <div className="flex flex-col w-16 hidden xl:flex items-end group/metric">
+          <span className="flex items-center gap-1 text-[0.55rem] uppercase tracking-widest text-faint mb-0.5">
+            <TrendingUp className="h-3 w-3 group-hover/metric:text-success transition-colors" /> Veloc.
+          </span>
+          <span className="font-mono text-[0.8rem] font-medium text-fg">{num2(sku["Velocidad (uds/día)"])} u/d</span>
         </div>
-        <div className="flex flex-col w-14 hidden 2xl:flex">
-          <span className="text-[0.6rem] uppercase tracking-wider text-faint">Sell-thru</span>
-          <span className="font-mono text-xs font-medium text-fg">{pct(sku["Sell-through Lote %"])}</span>
+        <div className="flex flex-col w-16 hidden 2xl:flex items-end group/metric">
+          <span className="flex items-center gap-1 text-[0.55rem] uppercase tracking-widest text-faint mb-0.5">
+            <Activity className="h-3 w-3 group-hover/metric:text-accent transition-colors" /> S-thru
+          </span>
+          <span className="font-mono text-[0.8rem] font-medium text-fg">{pct(sku["Sell-through Lote %"])}</span>
         </div>
       </div>
 
       {/* 4. Acciones */}
-      <div className="flex shrink-0 items-center justify-end w-6 text-muted group-hover:text-fg transition-colors">
+      <div className="flex shrink-0 items-center justify-end w-6 text-faint group-hover:text-primary transition-all group-hover:translate-x-1 duration-300 relative z-10">
         <ChevronRight className="h-5 w-5" />
       </div>
     </div>
