@@ -12,6 +12,16 @@ const iconTones: Record<BadgeTone, string> = {
   violet: "bg-violet/15 text-violet ring-violet/20",
 };
 
+const bgTones: Record<BadgeTone, string> = {
+  neutral: "hover:bg-surface-2",
+  primary: "hover:bg-primary/5",
+  success: "hover:bg-success/5",
+  warning: "hover:bg-warning/5",
+  danger: "hover:bg-danger/5",
+  info: "hover:bg-info/5",
+  violet: "hover:bg-violet/5",
+};
+
 /**
  * KpiStat — card de métrica destacada.
  *
@@ -41,11 +51,19 @@ export function KpiStat({
   return (
     <div
       className={cn(
-        "rounded-xl border border-border-soft bg-surface p-4 shadow-card",
+        "group relative overflow-hidden rounded-xl border border-border-soft bg-surface p-5 shadow-card",
         "animate-[fade-in-up_var(--duration-base)_var(--ease-premium)_both]",
-        "transition-shadow duration-[var(--duration-base)] ease-[var(--ease-premium)] hover:shadow-card-hover",
+        "transition-all duration-[var(--duration-base)] ease-[var(--ease-premium)] hover:-translate-y-1 hover:shadow-card-hover",
+        bgTones[tone],
       )}
     >
+      {/* Decorative gradient blur */}
+      <div
+        className={cn(
+          "pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-30",
+          iconTones[tone].split(' ')[0] // Uses the background color of the icon tone
+        )}
+      />
       <div className="flex items-start justify-between gap-2">
         <p className="text-caption font-semibold uppercase tracking-[0.08em] text-muted">
           {label}
@@ -53,12 +71,12 @@ export function KpiStat({
         {Icon && (
           <div
             className={cn(
-              "flex h-8 w-8 items-center justify-center rounded-md ring-1",
+              "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ring-1 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3",
               iconTones[tone],
             )}
             aria-hidden="true"
           >
-            <Icon className="h-4 w-4" />
+            <Icon className="h-5 w-5" />
           </div>
         )}
       </div>

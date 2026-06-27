@@ -173,7 +173,7 @@ export function MetricGauge({
   const fillAngle = startAngle - ratio * totalArc;
   const fillEndX = cx + radius * Math.cos(fillAngle);
   const fillEndY = cy - radius * Math.sin(fillAngle);
-  const largeArc = ratio > 0.5 ? 1 : 0;
+  const largeArc = 0; // Arc is at most 180° (Math.PI), so large-arc-flag is always 0
   const fillPath =
     ratio > 0
       ? `M ${bgStartX},${bgStartY} A ${radius},${radius} 0 ${largeArc},1 ${fillEndX},${fillEndY}`

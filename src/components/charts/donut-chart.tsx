@@ -29,10 +29,11 @@ export function DonutChart({
               data={data}
               dataKey="value"
               nameKey="name"
-              innerRadius="62%"
-              outerRadius="92%"
-              paddingAngle={1.5}
-              stroke="none"
+              innerRadius="65%"
+              outerRadius="90%"
+              paddingAngle={2}
+              stroke="var(--color-surface)"
+              strokeWidth={2}
             >
               {data.map((_, i) => (
                 <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />

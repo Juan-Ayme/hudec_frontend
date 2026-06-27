@@ -55,7 +55,8 @@ export function TimeSeriesChart<T>({
                 x2="0"
                 y2="1"
               >
-                <stop offset="0%" stopColor={color} stopOpacity={0.35} />
+                <stop offset="0%" stopColor={color} stopOpacity={0.5} />
+                <stop offset="80%" stopColor={color} stopOpacity={0.05} />
                 <stop offset="100%" stopColor={color} stopOpacity={0} />
               </linearGradient>
             );
@@ -82,10 +83,10 @@ export function TimeSeriesChart<T>({
               dataKey={s.key}
               name={s.label}
               stroke={color}
-              strokeWidth={2}
+              strokeWidth={3}
               fill={`url(#grad-${s.key})`}
               dot={false}
-              activeDot={{ r: 4, strokeWidth: 0 }}
+              activeDot={{ r: 6, strokeWidth: 3, stroke: "var(--color-bg)", fill: color }}
             />
           );
         })}

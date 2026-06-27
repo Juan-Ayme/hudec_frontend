@@ -40,7 +40,7 @@ export const AXIS_PROPS = {
 } as const;
 
 export const GRID_PROPS = {
-  stroke: "#1b2536",
+  stroke: "#ffffff0a",
   strokeDasharray: "3 3",
   vertical: false,
 } as const;
@@ -65,24 +65,26 @@ export function ChartTooltip({
 }) {
   if (!active || !payload || payload.length === 0) return null;
   return (
-    <div className="rounded-lg border border-border bg-surface-2 px-3 py-2 text-xs shadow-xl">
+    <div className="rounded-xl border border-border-soft bg-surface-2/90 px-4 py-3 text-xs shadow-2xl backdrop-blur-md">
       {label !== undefined && label !== "" && (
-        <p className="mb-1 font-medium text-fg">{label}</p>
+        <p className="mb-2 font-bold text-fg/90">{label}</p>
       )}
-      {payload.map((entry, i) => (
-        <div key={i} className="flex items-center gap-2 py-0.5">
-          <span
-            className="h-2 w-2 rounded-full"
-            style={{ backgroundColor: entry.color }}
-          />
-          <span className="text-muted">{entry.name}:</span>
-          <span className="font-medium text-fg tabular-nums">
-            {formatter
-              ? formatter(entry.value ?? "", String(entry.name ?? ""))
-              : entry.value}
-          </span>
-        </div>
-      ))}
+      <div className="flex flex-col gap-1.5">
+        {payload.map((entry, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <span
+              className="h-2.5 w-2.5 rounded-[3px] shadow-sm"
+              style={{ backgroundColor: entry.color }}
+            />
+            <span className="font-medium text-muted">{entry.name}:</span>
+            <span className="font-bold text-fg tabular-nums ml-auto pl-4">
+              {formatter
+                ? formatter(entry.value ?? "", String(entry.name ?? ""))
+                : entry.value}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

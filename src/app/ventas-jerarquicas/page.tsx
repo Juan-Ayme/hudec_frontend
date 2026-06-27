@@ -22,6 +22,11 @@ import {
   X,
   Calendar,
   Clock,
+  Package,
+  Timer,
+  Target,
+  BarChart2,
+  ShieldAlert,
   type LucideIcon,
 } from "lucide-react";
 import { getMatrix, matrixExcelUrl } from "@/lib/api";
@@ -240,30 +245,30 @@ function FilterChip({
   tone?: "primary" | "success" | "warning" | "danger" | "info" | "violet";
 }) {
   const toneStyles: Record<string, string> = {
-    primary: "border-primary/40 bg-primary/12 text-primary shadow-sm shadow-primary/10",
-    success: "border-success/40 bg-success/12 text-success",
-    warning: "border-warning/40 bg-warning/12 text-warning",
-    danger: "border-danger/40 bg-danger/12 text-danger",
-    info: "border-info/40 bg-info/12 text-info",
-    violet: "border-violet/40 bg-violet/12 text-violet",
+    primary: "border-primary/50 bg-primary/15 text-primary shadow-sm shadow-primary/10",
+    success: "border-success/50 bg-success/15 text-success shadow-sm",
+    warning: "border-warning/50 bg-warning/15 text-warning shadow-sm",
+    danger: "border-danger/50 bg-danger/15 text-danger shadow-sm",
+    info: "border-info/50 bg-info/15 text-info shadow-sm",
+    violet: "border-violet/50 bg-violet/15 text-violet shadow-sm",
   };
   return (
     <button
       onClick={onClick}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1",
-        "text-[0.65rem] font-semibold whitespace-nowrap",
+        "group inline-flex flex-1 sm:flex-none justify-center items-center gap-1.5 rounded-lg border px-2.5 py-1.5",
+        "text-xs font-medium whitespace-nowrap",
         "transition-all duration-[var(--duration-fast)] ease-[var(--ease-premium)]",
         active
           ? toneStyles[tone]
-          : "border-border-soft bg-surface text-muted hover:bg-surface-2 hover:text-fg",
+          : "border-border-soft bg-surface-2 text-muted hover:border-border hover:bg-surface-3 hover:text-fg",
       )}
     >
       <span>{label}</span>
       {count !== undefined && (
         <span className={cn(
-          "rounded-full px-1.5 py-px text-[0.55rem] font-bold tabular-nums",
-          active ? "bg-black/15" : "bg-surface-3",
+          "rounded-md px-1.5 py-0.5 text-[0.6rem] font-semibold tabular-nums",
+          active ? "bg-black/10" : "bg-surface-3 text-faint group-hover:bg-surface-4",
         )}>
           {num(count)}
         </span>
@@ -300,8 +305,9 @@ export default function VentasJerarquicasPage() {
   const [mesDropdownOpen, setMesDropdownOpen] = useState(false);
   const [fXYZ, setFXYZ] = useState<"todos" | "X" | "Y" | "Z">("todos");
   const [fTendencia, setFTendencia] = useState<"todos" | "creciendo" | "estable" | "bajando">("todos");
-  const [fCobertura, setFCobertura] = useState<"todos" | "critica" | "baja" | "ok">("todos");
+  const [fCobertura, setFCobertura] = useState<"todos" | "critica_10" | "critica" | "baja" | "ok">("todos");
   const [showFilters, setShowFilters] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   const q = useQuery({
     queryKey: ["matrix-04b", sucursalName],
@@ -365,6 +371,7 @@ export default function VentasJerarquicasPage() {
     if (fCobertura !== "todos") {
       rows = rows.filter(r => {
         const cob = n(r["Cobertura"]);
+        if (fCobertura === "critica_10") return cob <= 10;
         if (fCobertura === "critica") return cob < 15;
         if (fCobertura === "baja") return cob >= 15 && cob <= 30;
         return cob > 30;
@@ -613,13 +620,16 @@ export default function VentasJerarquicasPage() {
     setCurrentPage(1);
   }, [activeTab, deptoSel, catSel, subcatSel, busqueda, fStock, fDias, fMesIngreso, fXYZ, fTendencia, fCobertura]);
 
+  const hasActiveAdvancedFilters =
+    fXYZ !== "todos" ||
+    fTendencia !== "todos" ||
+    fCobertura !== "todos";
+
   const hasActiveFilters =
     fStock !== "todos" ||
     fDias !== "todos" ||
     fMesIngreso.size > 0 ||
-    fXYZ !== "todos" ||
-    fTendencia !== "todos" ||
-    fCobertura !== "todos";
+    hasActiveAdvancedFilters;
 
   return (
     <div>
@@ -976,99 +986,158 @@ export default function VentasJerarquicasPage() {
 
             {/* Panel de filtros (despliega bajo la toolbar) */}
             {showFilters && (
-              <div className="border-b border-border-soft bg-surface/60">
-                <div className="flex flex-col gap-3 px-4 py-3 animate-tree-expand">
-                  {/* Stock */}
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-[0.6rem] font-semibold uppercase tracking-wider text-faint w-16 shrink-0">Stock</span>
-                    <FilterChip label="Todos" active={fStock === "todos"} onClick={() => setFStock("todos")} />
-                    <FilterChip label="Con stock" count={allRows.filter(r => n(r["Stock Disp"]) > 0).length} active={fStock === "con_stock"} onClick={() => setFStock("con_stock")} tone="success" />
-                    <FilterChip label="Agotado" count={allRows.filter(r => n(r["Stock Disp"]) <= 0).length} active={fStock === "sin_stock"} onClick={() => setFStock("sin_stock")} tone="danger" />
-                  </div>
-
-                  {/* Estancamiento */}
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-[0.6rem] font-semibold uppercase tracking-wider text-faint w-16 shrink-0">Parado</span>
-                    <FilterChip label="Todos" active={fDias === "todos"} onClick={() => setFDias("todos")} />
-                    <FilterChip label=">7 días" count={allRows.filter(r => n(r["Días sin Vender"]) >= 7).length} active={fDias === "7"} onClick={() => setFDias("7")} tone="warning" />
-                    <FilterChip label=">15 días" count={allRows.filter(r => n(r["Días sin Vender"]) >= 15).length} active={fDias === "15"} onClick={() => setFDias("15")} tone="warning" />
-                    <FilterChip label=">30 días" count={allRows.filter(r => n(r["Días sin Vender"]) >= 30).length} active={fDias === "30"} onClick={() => setFDias("30")} tone="danger" />
-                  </div>
-
-                  {/* XYZ */}
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-[0.6rem] font-semibold uppercase tracking-wider text-faint w-16 shrink-0">XYZ</span>
-                    <FilterChip label="Todos" active={fXYZ === "todos"} onClick={() => setFXYZ("todos")} />
-                    <FilterChip label="X (frecuente)" count={allRows.filter(r => s(r["XYZ"]).toUpperCase().startsWith("X")).length} active={fXYZ === "X"} onClick={() => setFXYZ("X")} tone="success" />
-                    <FilterChip label="Y (moderado)" count={allRows.filter(r => s(r["XYZ"]).toUpperCase().startsWith("Y")).length} active={fXYZ === "Y"} onClick={() => setFXYZ("Y")} tone="info" />
-                    <FilterChip label="Z (esporádico)" count={allRows.filter(r => s(r["XYZ"]).toUpperCase().startsWith("Z")).length} active={fXYZ === "Z"} onClick={() => setFXYZ("Z")} tone="warning" />
-                  </div>
-
-                  {/* Tendencia */}
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-[0.6rem] font-semibold uppercase tracking-wider text-faint w-16 shrink-0">Trend</span>
-                    <FilterChip label="Todos" active={fTendencia === "todos"} onClick={() => setFTendencia("todos")} />
-                    <FilterChip label="↑ Creciendo" count={allRows.filter(r => s(r["Tendencia"]).toUpperCase().includes("CRECIENDO")).length} active={fTendencia === "creciendo"} onClick={() => setFTendencia("creciendo")} tone="success" />
-                    <FilterChip label="→ Estable" count={allRows.filter(r => { const t = s(r["Tendencia"]).toUpperCase(); return !t.includes("CRECIENDO") && !t.includes("BAJANDO"); }).length} active={fTendencia === "estable"} onClick={() => setFTendencia("estable")} tone="info" />
-                    <FilterChip label="↓ Bajando" count={allRows.filter(r => s(r["Tendencia"]).toUpperCase().includes("BAJANDO")).length} active={fTendencia === "bajando"} onClick={() => setFTendencia("bajando")} tone="danger" />
-                  </div>
-
-                  {/* Cobertura */}
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-[0.6rem] font-semibold uppercase tracking-wider text-faint w-16 shrink-0">Cober.</span>
-                    <FilterChip label="Todos" active={fCobertura === "todos"} onClick={() => setFCobertura("todos")} />
-                    <FilterChip label="Crítica <15d" count={allRows.filter(r => n(r["Cobertura"]) < 15).length} active={fCobertura === "critica"} onClick={() => setFCobertura("critica")} tone="danger" />
-                    <FilterChip label="Baja 15–30d" count={allRows.filter(r => { const c = n(r["Cobertura"]); return c >= 15 && c <= 30; }).length} active={fCobertura === "baja"} onClick={() => setFCobertura("baja")} tone="warning" />
-                    <FilterChip label="OK >30d" count={allRows.filter(r => n(r["Cobertura"]) > 30).length} active={fCobertura === "ok"} onClick={() => setFCobertura("ok")} tone="success" />
-                  </div>
-
-                  {/* Mes de Ingreso */}
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-[0.6rem] font-semibold uppercase tracking-wider text-faint w-16 shrink-0">Ingreso</span>
-                    <div className="relative">
+              <div className="border-b border-border-soft bg-surface-2/60 p-4 shadow-inner">
+                <div className="mx-auto flex flex-col gap-4 animate-tree-expand">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-fg">Filtros de Productos</h3>
+                    {hasActiveFilters && (
                       <button
-                        onClick={() => setMesDropdownOpen(!mesDropdownOpen)}
-                        className={cn(
-                          "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[0.65rem] font-semibold transition-all duration-[var(--duration-fast)]",
-                          fMesIngreso.size > 0
-                            ? "border-violet/40 bg-violet/12 text-violet shadow-sm"
-                            : "border-border-soft bg-surface text-muted hover:bg-surface-2",
-                        )}
+                        onClick={() => { setFStock("todos"); setFDias("todos"); setFMesIngreso(new Set()); setFXYZ("todos"); setFTendencia("todos"); setFCobertura("todos"); }}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-danger/20 bg-danger/10 px-3 py-1.5 text-[0.65rem] font-semibold text-danger transition-colors hover:bg-danger/20 hover:border-danger/30"
                       >
-                        <Calendar className="h-3 w-3" />
-                        {fMesIngreso.size === 0 ? "Todos los meses" : `${fMesIngreso.size} meses`}
-                        <ChevronRight className={cn("h-2.5 w-2.5 transition-transform", mesDropdownOpen && "rotate-90")} />
+                        <X className="h-3 w-3" /> Limpiar filtros
                       </button>
-                      {mesDropdownOpen && (
-                        <div className="absolute left-0 top-full z-50 mt-1 max-h-52 w-48 overflow-y-auto rounded-lg border border-border-soft bg-surface shadow-card py-1">
-                          {mesesDisponibles.map(ym => {
-                            const [y, m] = ym.split("-");
-                            const d = new Date(parseInt(y), parseInt(m) - 1, 1);
-                            const name = new Intl.DateTimeFormat('es-PE', { month: 'long', year: 'numeric' }).format(d);
-                            const label = name.charAt(0).toUpperCase() + name.slice(1);
-                            return (
-                              <label key={ym} className="flex cursor-pointer items-center gap-2 px-3 py-1.5 hover:bg-surface-2 text-xs text-fg">
-                                <input type="checkbox" checked={fMesIngreso.has(ym)}
-                                  onChange={(e) => { setFMesIngreso(prev => { const next = new Set(prev); if (e.target.checked) next.add(ym); else next.delete(ym); return next; }); }}
-                                  className="rounded border-border-soft text-primary focus:ring-primary h-3.5 w-3.5"
-                                />
-                                {label}
-                              </label>
-                            );
-                          })}
-                        </div>
-                      )}
+                    )}
+                  </div>
+
+                  {/* Filtros Básicos Grid */}
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {/* Stock Block */}
+                    <div className="flex flex-col gap-2 rounded-xl border border-border-soft bg-surface p-3 shadow-sm transition-shadow hover:shadow-md">
+                      <div className="flex items-center gap-2 text-faint mb-0.5">
+                        <Package className="h-4 w-4" />
+                        <span className="text-xs font-semibold uppercase tracking-wider text-muted">Stock Disponible</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        <FilterChip label="Todos" active={fStock === "todos"} onClick={() => setFStock("todos")} />
+                        <FilterChip label="Con stock" count={allRows.filter(r => n(r["Stock Disp"]) > 0).length} active={fStock === "con_stock"} onClick={() => setFStock("con_stock")} tone="success" />
+                        <FilterChip label="Agotado" count={allRows.filter(r => n(r["Stock Disp"]) <= 0).length} active={fStock === "sin_stock"} onClick={() => setFStock("sin_stock")} tone="danger" />
+                      </div>
+                    </div>
+
+                    {/* Estancamiento Block */}
+                    <div className="flex flex-col gap-2 rounded-xl border border-border-soft bg-surface p-3 shadow-sm transition-shadow hover:shadow-md">
+                      <div className="flex items-center gap-2 text-faint mb-0.5">
+                        <Timer className="h-4 w-4" />
+                        <span className="text-xs font-semibold uppercase tracking-wider text-muted">Estancamiento</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        <FilterChip label="Todos" active={fDias === "todos"} onClick={() => setFDias("todos")} />
+                        <FilterChip label=">7 días" count={allRows.filter(r => n(r["Días sin Vender"]) >= 7).length} active={fDias === "7"} onClick={() => setFDias("7")} tone="warning" />
+                        <FilterChip label=">15 días" count={allRows.filter(r => n(r["Días sin Vender"]) >= 15).length} active={fDias === "15"} onClick={() => setFDias("15")} tone="warning" />
+                        <FilterChip label=">30 días" count={allRows.filter(r => n(r["Días sin Vender"]) >= 30).length} active={fDias === "30"} onClick={() => setFDias("30")} tone="danger" />
+                      </div>
+                    </div>
+
+                    {/* Mes de Ingreso Block */}
+                    <div className="flex flex-col gap-2 rounded-xl border border-border-soft bg-surface p-3 shadow-sm transition-shadow hover:shadow-md">
+                      <div className="flex items-center gap-2 text-faint mb-0.5">
+                        <Calendar className="h-4 w-4" />
+                        <span className="text-xs font-semibold uppercase tracking-wider text-muted">Mes de Ingreso</span>
+                      </div>
+                      <div className="relative">
+                        <button
+                          onClick={() => setMesDropdownOpen(!mesDropdownOpen)}
+                          className={cn(
+                            "flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm font-semibold transition-all duration-[var(--duration-fast)]",
+                            fMesIngreso.size > 0
+                              ? "border-violet/40 bg-violet/12 text-violet shadow-sm"
+                              : "border-border-soft bg-surface-2 text-muted hover:bg-surface-3 hover:text-fg hover:border-border",
+                          )}
+                        >
+                          <span className="flex items-center gap-2 text-xs">
+                            {fMesIngreso.size === 0 ? "Todos los meses" : `${fMesIngreso.size} meses seleccionados`}
+                          </span>
+                          <ChevronRight className={cn("h-4 w-4 transition-transform", mesDropdownOpen && "rotate-90")} />
+                        </button>
+                        {mesDropdownOpen && (
+                          <div className="absolute left-0 top-full z-50 mt-1 max-h-52 w-full overflow-y-auto rounded-lg border border-border-soft bg-surface shadow-card py-1">
+                            {mesesDisponibles.map(ym => {
+                              const [y, m] = ym.split("-");
+                              const d = new Date(parseInt(y), parseInt(m) - 1, 1);
+                              const name = new Intl.DateTimeFormat('es-PE', { month: 'long', year: 'numeric' }).format(d);
+                              const label = name.charAt(0).toUpperCase() + name.slice(1);
+                              return (
+                                <label key={ym} className="flex cursor-pointer items-center gap-3 px-3 py-2 hover:bg-surface-2 text-sm text-fg transition-colors">
+                                  <input type="checkbox" checked={fMesIngreso.has(ym)}
+                                    onChange={(e) => { setFMesIngreso(prev => { const next = new Set(prev); if (e.target.checked) next.add(ym); else next.delete(ym); return next; }); }}
+                                    className="rounded border-border-soft text-primary focus:ring-primary h-4 w-4 bg-surface-2"
+                                  />
+                                  {label}
+                                </label>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 
-                  {/* Limpiar */}
-                  {hasActiveFilters && (
-                    <button
-                      onClick={() => { setFStock("todos"); setFDias("todos"); setFMesIngreso(new Set()); setFXYZ("todos"); setFTendencia("todos"); setFCobertura("todos"); }}
-                      className="self-start inline-flex items-center gap-1 rounded-full border border-danger/30 bg-danger/8 px-2.5 py-1 text-[0.65rem] font-semibold text-danger hover:bg-danger/15 transition-colors"
+                  {/* Toggle Filtros Avanzados */}
+                  <div className="relative mt-2 flex items-center justify-center">
+                    <div className="absolute left-0 right-0 top-1/2 h-px -translate-y-1/2 bg-border-soft/50" />
+                    <button 
+                      onClick={() => setShowAdvancedFilters(prev => !prev)}
+                      className={cn(
+                        "group relative z-10 flex items-center gap-2 rounded-full border border-border-soft bg-surface px-5 py-1.5 text-[0.65rem] font-semibold uppercase tracking-wider text-muted transition-all hover:border-violet/40 hover:bg-violet/10 hover:text-violet",
+                        showAdvancedFilters && "border-violet/40 bg-violet/10 text-violet shadow-sm"
+                      )}
                     >
-                      <X className="h-3 w-3" /> Limpiar todos
+                      <Filter className="h-3.5 w-3.5" />
+                      {showAdvancedFilters ? "Ocultar Filtros Avanzados" : "Mostrar Filtros Avanzados"}
+                      {!showAdvancedFilters && hasActiveAdvancedFilters && (
+                        <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5 rounded-full bg-violet ring-2 ring-surface shadow-sm" title="Filtros avanzados activos" />
+                      )}
+                      <ChevronRight className={cn("h-3.5 w-3.5 transition-transform group-hover:translate-y-px", showAdvancedFilters && "rotate-90")} />
                     </button>
+                  </div>
+
+                  {/* Filtros Avanzados Grid */}
+                  {showAdvancedFilters && (
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 animate-tree-expand">
+                      {/* XYZ */}
+                      <div className="flex flex-col gap-2 rounded-xl border border-violet/20 bg-violet/5 p-3 shadow-sm transition-shadow hover:shadow-md">
+                        <div className="flex items-center gap-2 text-violet/70 mb-0.5">
+                          <Target className="h-4 w-4" />
+                          <span className="text-xs font-semibold uppercase tracking-wider">Categorización XYZ</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          <FilterChip label="Todos" active={fXYZ === "todos"} onClick={() => setFXYZ("todos")} />
+                          <FilterChip label="X (frecuente)" count={allRows.filter(r => s(r["XYZ"]).toUpperCase().startsWith("X")).length} active={fXYZ === "X"} onClick={() => setFXYZ("X")} tone="success" />
+                          <FilterChip label="Y (moderado)" count={allRows.filter(r => s(r["XYZ"]).toUpperCase().startsWith("Y")).length} active={fXYZ === "Y"} onClick={() => setFXYZ("Y")} tone="info" />
+                          <FilterChip label="Z (esporádico)" count={allRows.filter(r => s(r["XYZ"]).toUpperCase().startsWith("Z")).length} active={fXYZ === "Z"} onClick={() => setFXYZ("Z")} tone="warning" />
+                        </div>
+                      </div>
+
+                      {/* Tendencia */}
+                      <div className="flex flex-col gap-2 rounded-xl border border-violet/20 bg-violet/5 p-3 shadow-sm transition-shadow hover:shadow-md">
+                        <div className="flex items-center gap-2 text-violet/70 mb-0.5">
+                          <BarChart2 className="h-4 w-4" />
+                          <span className="text-xs font-semibold uppercase tracking-wider">Tendencia</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          <FilterChip label="Todos" active={fTendencia === "todos"} onClick={() => setFTendencia("todos")} />
+                          <FilterChip label="↑ Creciendo" count={allRows.filter(r => s(r["Tendencia"]).toUpperCase().includes("CRECIENDO")).length} active={fTendencia === "creciendo"} onClick={() => setFTendencia("creciendo")} tone="success" />
+                          <FilterChip label="→ Estable" count={allRows.filter(r => { const t = s(r["Tendencia"]).toUpperCase(); return !t.includes("CRECIENDO") && !t.includes("BAJANDO"); }).length} active={fTendencia === "estable"} onClick={() => setFTendencia("estable")} tone="info" />
+                          <FilterChip label="↓ Bajando" count={allRows.filter(r => s(r["Tendencia"]).toUpperCase().includes("BAJANDO")).length} active={fTendencia === "bajando"} onClick={() => setFTendencia("bajando")} tone="danger" />
+                        </div>
+                      </div>
+
+                      {/* Cobertura */}
+                      <div className="flex flex-col gap-2 rounded-xl border border-violet/20 bg-violet/5 p-3 shadow-sm transition-shadow hover:shadow-md">
+                        <div className="flex items-center gap-2 text-violet/70 mb-0.5">
+                          <ShieldAlert className="h-4 w-4" />
+                          <span className="text-xs font-semibold uppercase tracking-wider">Cobertura</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          <FilterChip label="Todos" active={fCobertura === "todos"} onClick={() => setFCobertura("todos")} />
+                          <FilterChip label="🚨 < 10d" count={allRows.filter(r => n(r["Cobertura"]) <= 10).length} active={fCobertura === "critica_10"} onClick={() => setFCobertura("critica_10")} tone="danger" />
+                          <FilterChip label="Crítica <15d" count={allRows.filter(r => n(r["Cobertura"]) < 15).length} active={fCobertura === "critica"} onClick={() => setFCobertura("critica")} tone="danger" />
+                          <FilterChip label="Baja 15–30d" count={allRows.filter(r => { const c = n(r["Cobertura"]); return c >= 15 && c <= 30; }).length} active={fCobertura === "baja"} onClick={() => setFCobertura("baja")} tone="warning" />
+                          <FilterChip label="OK >30d" count={allRows.filter(r => n(r["Cobertura"]) > 30).length} active={fCobertura === "ok"} onClick={() => setFCobertura("ok")} tone="success" />
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>

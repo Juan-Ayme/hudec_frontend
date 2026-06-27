@@ -58,7 +58,7 @@ export function CategoryBarChart<T>({
           content={<ChartTooltip formatter={valueFormatter} />}
           cursor={{ fill: "#18222f" }}
         />
-        <Bar dataKey={valueKey} name={valueLabel} radius={[0, 4, 4, 0]}>
+        <Bar dataKey={valueKey} name={valueLabel} radius={[0, 6, 6, 0]} maxBarSize={32}>
           {data.map((_, i) => (
             <Cell
               key={i}
