@@ -303,6 +303,16 @@ export function VentasJerarquicasView() {
                     </div>
                   </div>
 
+                  {/* Stock Block */}
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-2 text-faint mb-0.5"><Package className="h-4 w-4" /> <span className="text-xs font-bold uppercase tracking-wider text-muted">Stock Disponible</span></div>
+                    <div className="flex flex-wrap gap-2 pl-6">
+                      <FilterChip label="Todos" active={fStock === "todos"} onClick={() => setFStock("todos")} />
+                      <FilterChip label="Con stock" active={fStock === "con_stock"} onClick={() => setFStock("con_stock")} tone="success" />
+                      <FilterChip label="Agotado" active={fStock === "sin_stock"} onClick={() => setFStock("sin_stock")} tone="danger" />
+                    </div>
+                  </div>
+
                   {/* Cobertura Block */}
                   <div className="flex flex-col gap-3">
                     <div className="flex items-center gap-2 text-faint mb-0.5">
@@ -310,10 +320,10 @@ export function VentasJerarquicasView() {
                     </div>
                     <div className="flex flex-wrap gap-2 pl-6">
                       <FilterChip label="Todos" active={fCobertura === "todos"} onClick={() => setFCobertura("todos")} />
-                      <FilterChip label="🚨 Crítico (<10 días)" active={fCobertura === "critica_10"} onClick={() => setFCobertura("critica_10")} tone="danger" />
-                      <FilterChip label="⚠️ Alerta (10-15 días)" active={fCobertura === "critica"} onClick={() => setFCobertura("critica")} tone="danger" />
-                      <FilterChip label="📉 Bajo (15-30 días)" active={fCobertura === "baja"} onClick={() => setFCobertura("baja")} tone="warning" />
-                      <FilterChip label="✅ Óptimo (>30 días)" active={fCobertura === "ok"} onClick={() => setFCobertura("ok")} tone="success" />
+                      <FilterChip label="🚨 Crítico (Menos de 10 días)" active={fCobertura === "critica_10"} onClick={() => setFCobertura("critica_10")} tone="danger" />
+                      <FilterChip label="⚠️ Alerta (Entre 10 y 15 días)" active={fCobertura === "critica"} onClick={() => setFCobertura("critica")} tone="danger" />
+                      <FilterChip label="📉 Bajo (Entre 15 y 30 días)" active={fCobertura === "baja"} onClick={() => setFCobertura("baja")} tone="warning" />
+                      <FilterChip label="✅ Óptimo (Más de 30 días)" active={fCobertura === "ok"} onClick={() => setFCobertura("ok")} tone="success" />
                     </div>
                   </div>
 
@@ -326,15 +336,7 @@ export function VentasJerarquicasView() {
 
                   {showAdvancedFilters && (
                     <div className="flex flex-col gap-6 animate-in slide-in-from-top-4 fade-in duration-300 pb-10">
-                      {/* Stock Block */}
-                      <div className="flex flex-col gap-3">
-                        <div className="flex items-center gap-2 text-faint mb-0.5"><Package className="h-4 w-4" /> <span className="text-xs font-bold uppercase tracking-wider text-muted">Stock Disponible</span></div>
-                        <div className="flex flex-wrap gap-2 pl-6">
-                          <FilterChip label="Todos" active={fStock === "todos"} onClick={() => setFStock("todos")} />
-                          <FilterChip label="Con stock" active={fStock === "con_stock"} onClick={() => setFStock("con_stock")} tone="success" />
-                          <FilterChip label="Agotado" active={fStock === "sin_stock"} onClick={() => setFStock("sin_stock")} tone="danger" />
-                        </div>
-                      </div>
+
                       
                       {/* Estancamiento */}
                       <div className="flex flex-col gap-3">

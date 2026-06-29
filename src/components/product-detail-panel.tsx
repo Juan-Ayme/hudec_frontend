@@ -449,7 +449,7 @@ export function ProductDetailPanel({
               <MetricGauge
                 label="Balance Oferta/Demanda"
                 value={n(row["% Demanda vs Reposición"])}
-                max={200}
+                max={100}
                 suffix="%"
                 thresholds={{ danger: 50, warning: 80 }}
                 size={150}
