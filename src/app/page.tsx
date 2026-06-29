@@ -18,6 +18,7 @@ import { KpiStat } from "@/components/ui/kpi-stat";
 import { Card, CardHeader, CardBody } from "@/components/ui/card";
 import { DataTable, type Column } from "@/components/ui/data-table";
 import { ErrorState, EmptyState } from "@/components/ui/states";
+import { LineChartLoader, BarChartLoader, DonutChartLoader, GaugeLoader, TableLoader } from "@/components/ui/chart-loaders";
 const TimeSeriesChart = dynamic(() => import("@/components/charts/time-series-chart").then(mod => mod.TimeSeriesChart), { ssr: false });
 const CategoryBarChart = dynamic(() => import("@/components/charts/category-bar-chart").then(mod => mod.CategoryBarChart), { ssr: false });
 const DonutChart = dynamic(() => import("@/components/charts/donut-chart").then(mod => mod.DonutChart), { ssr: false });
@@ -127,19 +128,25 @@ export default function DashboardPage() {
            <Card className="group relative flex h-full items-center justify-center overflow-hidden bg-surface-2 hover:bg-surface-3 transition-colors duration-500">
               <div className="pointer-events-none absolute -bottom-10 -right-10 h-32 w-32 rounded-full bg-primary/20 blur-3xl" />
               <div className="flex flex-col items-center justify-center p-6 w-full h-full">
-                 <MetricGauge 
-                   value={k?.ticket_promedio || 0} 
-                   max={(k?.ticket_promedio || 0) * 1.5 || 50} 
-                   label="Ticket Promedio" 
-                   suffix="" 
-                   tone="primary" 
-                   thresholds={{danger: 10, warning: 15}}
-                   size={140}
-                 />
-                 <div className="mt-4 flex items-center justify-center gap-1.5 text-xs text-muted">
-                    <Receipt className="h-3.5 w-3.5" />
-                    <span>{num(k?.tickets_con_monto)} ventas con monto</span>
-                 </div>
+                 {kpis.isLoading ? (
+                    <GaugeLoader />
+                 ) : (
+                    <>
+                       <MetricGauge 
+                         value={k?.ticket_promedio || 0} 
+                         max={(k?.ticket_promedio || 0) * 1.5 || 50} 
+                         label="Ticket Promedio" 
+                         suffix="" 
+                         tone="primary" 
+                         thresholds={{danger: 10, warning: 15}}
+                         size={140}
+                       />
+                       <div className="mt-4 flex items-center justify-center gap-1.5 text-xs text-muted">
+                          <Receipt className="h-3.5 w-3.5" />
+                          <span>{num(k?.tickets_con_monto)} ventas con monto</span>
+                       </div>
+                    </>
+                 )}
               </div>
            </Card>
         </div>
@@ -153,7 +160,9 @@ export default function DashboardPage() {
               subtitle={`Flujo de ingresos de los últimos ${days} días`}
             />
             <CardBody className="flex-1 relative z-10 pt-0 pb-6">
-              {byDay.isError ? (
+              {byDay.isLoading ? (
+                <LineChartLoader />
+              ) : byDay.isError ? (
                 <ErrorState error={byDay.error} />
               ) : byDay.data && byDay.data.length === 0 ? (
                 <EmptyState title="Sin ventas en el período" />
@@ -181,7 +190,9 @@ export default function DashboardPage() {
                subtitle={`Ranking departamental en ${days} días`} 
             />
             <CardBody className="flex-1 relative z-10">
-              {byDept.isError ? (
+              {byDept.isLoading ? (
+                <BarChartLoader />
+              ) : byDept.isError ? (
                 <ErrorState error={byDept.error} />
               ) : byDept.data && byDept.data.length === 0 ? (
                 <EmptyState />
@@ -207,7 +218,9 @@ export default function DashboardPage() {
               subtitle={valuation.data ? `Total: ${money(valuation.data.total_soles)}` : "—"}
             />
             <CardBody className="flex-1 flex items-center justify-center relative z-10">
-              {valuation.isError ? (
+              {valuation.isLoading ? (
+                <DonutChartLoader />
+              ) : valuation.isError ? (
                 <ErrorState error={valuation.error} />
               ) : (
                 <DonutChart
@@ -230,15 +243,19 @@ export default function DashboardPage() {
               title={<span className="flex items-center gap-2"><Trophy className="h-5 w-5 text-yellow-500" /> Leaderboard de Productos</span>}
               subtitle={`Items más calientes (${days} días)`}
             />
-            <CardBody className="pt-0 pb-2 px-2 sm:px-4">
-              <DataTable
-                columns={topCols}
-                rows={top.data}
-                isLoading={top.isLoading}
-                error={top.error}
-                rowKey={(r) => r.bsale_product_id}
-                emptyTitle="Sin ventas en el período"
-              />
+            <CardBody className="pt-0 pb-2 px-2 sm:px-4 min-h-[200px]">
+              {top.isLoading ? (
+                <TableLoader />
+              ) : (
+                <DataTable
+                  columns={topCols}
+                  rows={top.data}
+                  isLoading={top.isLoading}
+                  error={top.error}
+                  rowKey={(r) => r.bsale_product_id}
+                  emptyTitle="Sin ventas en el período"
+                />
+              )}
             </CardBody>
           </Card>
         </div>
@@ -257,7 +274,9 @@ export default function DashboardPage() {
               <div className="pointer-events-none absolute -top-10 -left-10 h-32 w-32 rounded-full bg-violet/10 blur-3xl" />
               <CardHeader title={<span className="flex items-center gap-2"><Store className="h-5 w-5 text-violet" /> Rendimiento Sucursales</span>} subtitle={`Facturación en ${days} días`} />
               <CardBody className="space-y-4 pt-2 relative z-10">
-                {byOffice.isError ? (
+                {byOffice.isLoading ? (
+                  <BarChartLoader />
+                ) : byOffice.isError ? (
                   <ErrorState error={byOffice.error} />
                 ) : (byOffice.data ?? []).length === 0 ? (
                   <EmptyState icon={Store} />

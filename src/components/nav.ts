@@ -15,6 +15,7 @@ import {
   Settings,
   ShoppingCart,
   History,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 
@@ -71,6 +72,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: "/auditorias", label: "Auditorías", icon: ShieldCheck },
       { href: "/sync", label: "Sincronización", icon: RefreshCw },
       { href: "/configuracion", label: "Configuración", icon: Settings },
+      { href: "/usuarios", label: "Usuarios", icon: Users },
     ],
   },
 ];

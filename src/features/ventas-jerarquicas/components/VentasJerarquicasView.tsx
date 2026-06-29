@@ -23,6 +23,8 @@ import { ProductListItem } from "./ProductListItem";
 import { HealthBadge } from "./HealthBadge";
 import { FilterChip } from "./FilterChip";
 
+import { AnimeLoader } from "@/components/ui/anime-loader";
+
 export function VentasJerarquicasView() {
   const { sucursalName } = useSucursal();
   const state = useVentasJerarquicas(sucursalName);
@@ -38,7 +40,7 @@ export function VentasJerarquicasView() {
   } = state;
 
   if (q.isError) return <ErrorState error={q.error} />;
-  if (q.isLoading) return <LoadingState />;
+  if (q.isLoading) return <AnimeLoader label="Analizando jerarquías..." />;
 
   return (
     <div className={cn("grid grid-cols-1 gap-4", "lg:grid-cols-[420px_1fr]")}>

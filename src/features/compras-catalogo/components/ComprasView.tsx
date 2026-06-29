@@ -1,6 +1,8 @@
 "use client";
 
-import { AlertTriangle, Archive, ChevronRight, Download, Home, Layers, Package, Percent, Search, ShoppingCart, SlidersHorizontal, TrendingDown, TrendingUp, Wallet } from "lucide-react";
+import { useState } from "react";
+
+import { AlertTriangle, Archive, ChevronDown, ChevronRight, Download, Filter, Home, Layers, Package, Percent, Search, ShoppingCart, SlidersHorizontal, TrendingDown, TrendingUp, Wallet, X, AlertCircle, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { money, num, pct } from "@/lib/format";
 import { useSucursal } from "@/components/sucursal-context";
@@ -18,17 +20,20 @@ import { scopeTitle } from "../utils";
 import { JerarquiaTree, RootNode } from "./HierarchySidebar";
 import { SkuTable } from "./SkuTable";
 import { SkuDetailDrawer } from "./SkuDetailDrawer";
+import { TreeLoader, ListLoader, TableLoader } from "@/components/ui/chart-loaders";
 
 function FilterChip({
   label,
   active,
   onClick,
   tone,
+  icon,
 }: {
   label: string;
   active: boolean;
   onClick: () => void;
-  tone?: "danger" | "warning" | "success" | "primary";
+  tone?: "danger" | "warning" | "success" | "primary" | "violet";
+  icon?: React.ReactNode;
 }) {
   const activeClass = tone
     ? {
@@ -36,19 +41,31 @@ function FilterChip({
         warning: "border-warning/40 bg-warning/10 text-warning text-yellow-500 shadow-[0_0_0_1px_rgba(var(--color-warning),0.1)_inset]",
         success: "border-success/40 bg-success/10 text-success shadow-[0_0_0_1px_rgba(var(--color-success),0.1)_inset]",
         primary: "border-primary/40 bg-primary/10 text-primary shadow-[0_0_0_1px_rgba(var(--color-primary),0.1)_inset]",
+        violet: "border-violet/40 bg-violet/10 text-violet shadow-[0_0_0_1px_rgba(var(--color-violet),0.1)_inset]",
       }[tone]
     : "border-fg/20 bg-fg/5 text-fg shadow-[0_0_0_1px_rgba(255,255,255,0.05)_inset]";
+
+  const hoverClass = tone
+    ? {
+        danger: "hover:border-danger/30 hover:bg-danger/5 hover:text-danger",
+        warning: "hover:border-warning/30 hover:bg-warning/5 hover:text-yellow-500",
+        success: "hover:border-success/30 hover:bg-success/5 hover:text-success",
+        primary: "hover:border-primary/30 hover:bg-primary/5 hover:text-primary",
+        violet: "hover:border-violet/30 hover:bg-violet/5 hover:text-violet",
+      }[tone]
+    : "hover:border-border hover:bg-surface-3 hover:text-fg";
 
   return (
     <button
       onClick={onClick}
       className={cn(
-        "rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-all duration-200",
+        "rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-all duration-200 flex items-center gap-1.5",
         active
           ? activeClass
-          : "border-border-soft bg-surface-2 text-muted hover:border-border hover:bg-surface-3 hover:text-fg",
+          : cn("border-border-soft bg-surface-2 text-muted", hoverClass),
       )}
     >
+      {icon && <span className={cn("shrink-0 flex items-center justify-center", active ? "opacity-100" : "opacity-70")}>{icon}</span>}
       {label}
     </button>
   );
@@ -79,6 +96,60 @@ function MiniKpi({
       <p className={cn("mt-0.5 text-base font-bold tabular-nums", colorClass)}>
         {value}
       </p>
+    </div>
+  );
+}
+
+function CompactKpi({
+  label,
+  value,
+  sub,
+  icon: Icon,
+  tone = "primary",
+  loading,
+}: {
+  label: string;
+  value: React.ReactNode;
+  sub?: React.ReactNode;
+  icon?: any;
+  tone?: "danger" | "warning" | "primary" | "success" | "info" | "violet";
+  loading?: boolean;
+}) {
+  const iconColors = {
+    danger: "text-danger bg-danger/10",
+    warning: "text-warning bg-warning/10",
+    primary: "text-primary bg-primary/10",
+    success: "text-success bg-success/10",
+    info: "text-info bg-info/10",
+    violet: "text-violet bg-violet/10",
+  }[tone];
+
+  return (
+    <div className="flex flex-col justify-between gap-1.5 rounded-xl border border-border-soft bg-surface-2 p-3 shadow-sm transition-all hover:bg-surface-3">
+      <div className="flex items-center gap-2">
+        {Icon && (
+          <div className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-md", iconColors)}>
+            <Icon className="h-3.5 w-3.5" />
+          </div>
+        )}
+        <p className="truncate text-[10px] font-bold uppercase tracking-wider text-muted">
+          {label}
+        </p>
+      </div>
+      {loading ? (
+        <div className="h-6 w-16 animate-pulse rounded bg-surface-3" />
+      ) : (
+        <div className="flex items-baseline gap-1.5">
+          <span className="font-mono text-lg font-bold tabular-nums text-fg leading-none">
+            {value}
+          </span>
+        </div>
+      )}
+      {sub && !loading && (
+        <p className="truncate text-[10px] font-medium text-faint">
+          {sub}
+        </p>
+      )}
     </div>
   );
 }
@@ -162,6 +233,7 @@ function Breadcrumb({
 }
 
 export function ComprasView() {
+  const [showKpis, setShowKpis] = useState(false);
   const { officeId, sucursalName } = useSucursal();
   const {
     query,
@@ -187,15 +259,6 @@ export function ComprasView() {
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <PageHeader
-        title="Catálogo de Compras"
-        description={
-          officeId == null
-            ? "Seleccioná una sucursal para ver las sugerencias de compra."
-            : `Sugerencias de reposición algorítmica para ${sucursalName}.`
-        }
-      />
-
       {officeId == null ? (
         <EmptyState title="Sucursal no seleccionada" hint="Usa el selector superior para elegir una sucursal y ver las sugerencias." />
       ) : query.isError ? (
@@ -204,8 +267,21 @@ export function ComprasView() {
         </div>
       ) : (
         <>
-          <section className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <KpiStat
+          <div className="mb-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowKpis(!showKpis)}
+              className="text-muted hover:text-fg rounded-full px-4 border-border-soft bg-surface-2"
+            >
+              {showKpis ? "Ocultar Resumen" : "Ver Resumen General"}
+              <ChevronDown className={cn("ml-2 h-4 w-4 transition-transform", showKpis && "rotate-180")} />
+            </Button>
+          </div>
+
+          {showKpis && (
+            <section className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4 animate-in slide-in-from-top-2 fade-in duration-200">
+            <CompactKpi
               label="SKUs en quiebre"
               value={num(query.data?.kpis.skus_criticos_total)}
               icon={AlertTriangle}
@@ -214,30 +290,30 @@ export function ComprasView() {
               sub={
                 query.data ? (
                   <span>
-                    <span className="font-semibold text-danger">{num(query.data.kpis.skus_critico)}</span> crítico ·{" "}
+                    <span className="font-semibold text-danger">{num(query.data.kpis.skus_critico)}</span> crít ·{" "}
                     <span className="font-semibold text-warning">{num(query.data.kpis.skus_alta)}</span> alta
                   </span>
                 ) : null
               }
             />
-            <KpiStat
-              label="Venta 90d en riesgo"
+            <CompactKpi
+              label="Venta en riesgo (90d)"
               value={money(query.data?.kpis.venta_90d_en_riesgo)}
               icon={Wallet}
               tone="warning"
               loading={query.isLoading}
-              sub="Histórico potencialmente perdido si no se repone"
+              sub="Pérdida potencial"
             />
-            <KpiStat
+            <CompactKpi
               label="Unidades a reponer"
               value={num(query.data?.kpis.unidades_a_reponer)}
               icon={Package}
               tone="primary"
               loading={query.isLoading}
-              sub={query.data ? `Cobertura objetivo · ${query.data.cobertura_objetivo_dias} días` : null}
+              sub={query.data ? `Cobertura obj: ${query.data.cobertura_objetivo_dias}d` : null}
             />
-            <KpiStat
-              label="Margen promedio"
+            <CompactKpi
+              label="Margen prom."
               value={
                 query.data?.kpis.margen_promedio_pct !== null && query.data?.kpis.margen_promedio_pct !== undefined
                   ? pct(query.data.kpis.margen_promedio_pct)
@@ -246,9 +322,10 @@ export function ComprasView() {
               icon={Percent}
               tone="success"
               loading={query.isLoading}
-              sub="Ponderado por venta (90d)"
+              sub="Ponderado (90d)"
             />
-          </section>
+            </section>
+          )}
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-[340px_1fr]">
             <aside className="flex flex-col gap-4">
@@ -265,7 +342,7 @@ export function ComprasView() {
                 <CardBody className="space-y-1 px-2 pt-2">
                   <RootNode total={query.data?.kpis.skus_criticos_total ?? 0} active={!selection.dept && !selection.cat && !selection.subcat} onClick={() => setSelection(ROOT_SELECTION)} />
                   {query.isLoading ? (
-                    <LoadingState label="Cargando jerarquía…" />
+                    <TreeLoader />
                   ) : (
                     <JerarquiaTree tree={tree} selection={selection} onSelect={setSelection} />
                   )}
@@ -283,7 +360,7 @@ export function ComprasView() {
                 />
                 <CardBody className="pt-3">
                   {query.isLoading ? (
-                    <LoadingState label="Cargando…" />
+                    <ListLoader />
                   ) : query.data?.por_accion.length ? (
                     <ul className="space-y-1.5 text-xs">
                       {query.data.por_accion.map((a) => (
@@ -332,25 +409,107 @@ export function ComprasView() {
                           className="h-8 w-44 rounded-md border border-border-soft bg-surface-2 pl-8 pr-2 text-xs text-fg placeholder:text-faint focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/40"
                         />
                       </label>
-                      <Button
-                        onClick={() => setShowFilters(true)}
-                        variant="outline"
-                        size="sm"
-                        className={cn(
-                          "h-8 shrink-0 relative transition-all",
-                          (fSeveridad !== "todas" || fTendencia !== "todas" || fStockAlmacen !== "todos")
-                            ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 hover:border-primary/60"
-                            : "border-border-soft bg-surface-2 hover:bg-surface-3 hover:text-fg text-muted"
+                      <div className="relative">
+                        <Button
+                          onClick={() => setShowFilters(!showFilters)}
+                          variant="outline"
+                          size="sm"
+                          className={cn(
+                            "h-8 shrink-0 relative transition-all",
+                            (fSeveridad !== "todas" || fTendencia !== "todas" || fStockAlmacen !== "todos")
+                              ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 hover:border-primary/60"
+                              : "border-border-soft bg-surface-2 hover:bg-surface-3 hover:text-fg text-muted"
+                          )}
+                        >
+                          <SlidersHorizontal className="h-3.5 w-3.5 mr-2" />
+                          <span className="hidden sm:inline font-medium">Filtros</span>
+                          {(fSeveridad !== "todas" || fTendencia !== "todas" || fStockAlmacen !== "todos") && (
+                            <span className="absolute -top-1.5 -right-1.5 h-3.5 w-3.5 rounded-full bg-primary text-[8px] font-bold text-black flex items-center justify-center border-2 border-surface shadow-sm">
+                              {(fSeveridad !== "todas" ? 1 : 0) + (fTendencia !== "todas" ? 1 : 0) + (fStockAlmacen !== "todos" ? 1 : 0)}
+                            </span>
+                          )}
+                        </Button>
+
+                        {showFilters && (
+                          <>
+                            <div className="fixed inset-0 z-40" onClick={() => setShowFilters(false)} />
+                            <div className="absolute right-0 top-full mt-2 w-[340px] z-50 flex flex-col rounded-xl border border-white/10 bg-surface shadow-2xl animate-[fade-in-up_var(--duration-fast)_var(--ease-premium)] overflow-hidden">
+                              <div className="flex items-center justify-between border-b border-white/10 p-3 bg-surface/50 backdrop-blur-md">
+                                <h3 className="text-sm font-bold text-fg flex items-center gap-2">
+                                  <Filter className="h-4 w-4 text-violet" /> Filtros Avanzados
+                                </h3>
+                                <button onClick={() => setShowFilters(false)} className="p-1 rounded-full hover:bg-white/10 text-muted hover:text-fg transition-colors"><X className="h-4 w-4" /></button>
+                              </div>
+                              <div className="flex-1 overflow-y-auto p-4 custom-scrollbar max-h-[60vh]">
+                                <div className="flex flex-col gap-5">
+                                  
+                                  <div className="flex flex-col gap-2">
+                                    <div className="flex items-center gap-2 text-faint">
+                                      <AlertTriangle className="h-4 w-4" />
+                                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted">Severidad del Quiebre</span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      <FilterChip label="Todas" active={fSeveridad === "todas"} onClick={() => setFSeveridad("todas")} tone="violet" />
+                                      <FilterChip label="Crítico" icon={<div className="w-2 h-2 rounded-full bg-danger shadow-[0_0_6px_rgba(var(--color-danger),0.8)]" />} active={fSeveridad === "critico"} onClick={() => setFSeveridad("critico")} tone="danger" />
+                                      <FilterChip label="Alta" icon={<div className="w-2 h-2 rounded-full bg-warning shadow-[0_0_6px_rgba(var(--color-warning),0.8)]" />} active={fSeveridad === "alta"} onClick={() => setFSeveridad("alta")} tone="warning" />
+                                    </div>
+                                  </div>
+
+                                  <div className="flex flex-col gap-2">
+                                    <div className="flex items-center gap-2 text-faint">
+                                      <TrendingUp className="h-4 w-4" />
+                                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted">Tendencia de Demanda</span>
+                                    </div>
+                                    <p className="text-[0.6rem] text-faint/80 leading-tight">Compara últimos 30d vs 90d históricos.</p>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      <FilterChip label="Todas" active={fTendencia === "todas"} onClick={() => setFTendencia("todas")} tone="violet" />
+                                      <FilterChip label="Creciente" icon={<TrendingUp className="w-3.5 h-3.5" />} active={fTendencia === "creciente"} onClick={() => setFTendencia("creciente")} tone="success" />
+                                      <FilterChip label="Estable" icon={<ArrowRight className="w-3.5 h-3.5" />} active={fTendencia === "estable"} onClick={() => setFTendencia("estable")} tone="primary" />
+                                      <FilterChip label="Decreciente" icon={<TrendingDown className="w-3.5 h-3.5" />} active={fTendencia === "decreciente"} onClick={() => setFTendencia("decreciente")} tone="warning" />
+                                    </div>
+                                  </div>
+
+                                  <div className="flex flex-col gap-2">
+                                    <div className="flex items-center gap-2 text-faint">
+                                      <Archive className="h-4 w-4" />
+                                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted">Stock en CD</span>
+                                    </div>
+                                    <p className="text-[0.6rem] text-faint/80 leading-tight">¿Tenemos unidades para trasladar hoy?</p>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      <FilterChip label="Todos" active={fStockAlmacen === "todos"} onClick={() => setFStockAlmacen("todos")} tone="violet" />
+                                      <FilterChip label="Con Stock" icon={<Package className="w-3.5 h-3.5" />} active={fStockAlmacen === "con_stock"} onClick={() => setFStockAlmacen("con_stock")} tone="success" />
+                                      <FilterChip label="Sin Stock" icon={<AlertCircle className="w-3.5 h-3.5" />} active={fStockAlmacen === "sin_stock"} onClick={() => setFStockAlmacen("sin_stock")} tone="danger" />
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="shrink-0 border-t border-white/5 bg-surface-2 p-3">
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex-1 border-white/5 bg-surface hover:bg-surface-3 hover:text-fg text-muted"
+                                    onClick={() => {
+                                      setFSeveridad("todas");
+                                      setFTendencia("todas");
+                                      setFStockAlmacen("todos");
+                                    }}
+                                  >
+                                    Limpiar
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    className="flex-1 bg-violet text-white hover:bg-violet/90"
+                                    onClick={() => setShowFilters(false)}
+                                  >
+                                    Ver Resultados
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          </>
                         )}
-                      >
-                        <SlidersHorizontal className="h-3.5 w-3.5 mr-2" />
-                        <span className="hidden sm:inline font-medium">Filtros</span>
-                        {(fSeveridad !== "todas" || fTendencia !== "todas" || fStockAlmacen !== "todos") && (
-                          <span className="absolute -top-1.5 -right-1.5 h-3.5 w-3.5 rounded-full bg-primary text-[8px] font-bold text-black flex items-center justify-center border-2 border-surface shadow-sm">
-                            {(fSeveridad !== "todas" ? 1 : 0) + (fTendencia !== "todas" ? 1 : 0) + (fStockAlmacen !== "todos" ? 1 : 0)}
-                          </span>
-                        )}
-                      </Button>
+                      </div>
                       <div className="w-px h-6 bg-border-soft mx-1 hidden sm:block" />
                       <Button 
                         onClick={downloadExcel} 
@@ -364,9 +523,10 @@ export function ComprasView() {
                     </div>
                   }
                 />
-                <CardBody className="pt-0">
+                <CardBody className="pt-0 min-h-[400px]">
+
                   {query.isLoading ? (
-                    <LoadingState label="Calculando SKUs en quiebre…" />
+                    <TableLoader />
                   ) : filteredSkus.length === 0 ? (
                     <EmptyState
                       title="Sin SKUs para los filtros actuales"
@@ -398,80 +558,9 @@ export function ComprasView() {
         </>
       )}
 
-      <Drawer
-        open={showFilters}
-        onClose={() => setShowFilters(false)}
-        title="Filtros Avanzados"
-        subtitle="Segmenta tu tabla de compras sugeridas."
-        width="sm"
-      >
-        <div className="flex h-full flex-col">
-          <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
-            <div className="space-y-6">
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-faint">
-                  <AlertTriangle className="h-4 w-4" />
-                  <span className="text-xs font-bold uppercase tracking-wider text-muted">Severidad del Quiebre</span>
-                </div>
-                <div className="flex flex-wrap gap-2 pl-6">
-                  <FilterChip label="Todas" active={fSeveridad === "todas"} onClick={() => setFSeveridad("todas")} />
-                  <FilterChip label="🔴 Crítico" active={fSeveridad === "critico"} onClick={() => setFSeveridad("critico")} tone="danger" />
-                  <FilterChip label="🟠 Alta" active={fSeveridad === "alta"} onClick={() => setFSeveridad("alta")} tone="warning" />
-                </div>
-              </div>
 
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-faint">
-                  <TrendingUp className="h-4 w-4" />
-                  <span className="text-xs font-bold uppercase tracking-wider text-muted">Tendencia de Demanda</span>
-                </div>
-                <p className="text-[0.65rem] text-faint/80 pl-6 leading-tight">Compara los últimos 30 días vs los 90 días históricos.</p>
-                <div className="flex flex-wrap gap-2 pl-6">
-                  <FilterChip label="Todas" active={fTendencia === "todas"} onClick={() => setFTendencia("todas")} />
-                  <FilterChip label="📈 Creciente" active={fTendencia === "creciente"} onClick={() => setFTendencia("creciente")} tone="success" />
-                  <FilterChip label="➡️ Estable" active={fTendencia === "estable"} onClick={() => setFTendencia("estable")} tone="primary" />
-                  <FilterChip label="📉 Decreciente" active={fTendencia === "decreciente"} onClick={() => setFTendencia("decreciente")} tone="warning" />
-                </div>
-              </div>
 
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-faint">
-                  <Archive className="h-4 w-4" />
-                  <span className="text-xs font-bold uppercase tracking-wider text-muted">Stock en Almacén Central</span>
-                </div>
-                <p className="text-[0.65rem] text-faint/80 pl-6 leading-tight">¿Tenemos unidades en CD para trasladar inmediatamente?</p>
-                <div className="flex flex-wrap gap-2 pl-6">
-                  <FilterChip label="Todos" active={fStockAlmacen === "todos"} onClick={() => setFStockAlmacen("todos")} />
-                  <FilterChip label="🏢 Con Stock" active={fStockAlmacen === "con_stock"} onClick={() => setFStockAlmacen("con_stock")} tone="success" />
-                  <FilterChip label="⚠️ Sin Stock" active={fStockAlmacen === "sin_stock"} onClick={() => setFStockAlmacen("sin_stock")} tone="danger" />
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="shrink-0 border-t border-border-soft bg-surface-2 p-4">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="outline"
-                className="flex-1 border-border-soft bg-surface-1 hover:bg-surface-3 hover:text-fg text-muted"
-                onClick={() => {
-                  setFSeveridad("todas");
-                  setFTendencia("todas");
-                  setFStockAlmacen("todos");
-                }}
-              >
-                Limpiar filtros
-              </Button>
-              <Button
-                variant="primary"
-                className="flex-1"
-                onClick={() => setShowFilters(false)}
-              >
-                Aplicar y cerrar
-              </Button>
-            </div>
-          </div>
-        </div>
-      </Drawer>
+
 
       <SkuDetailDrawer sku={selectedSku} officeId={officeId} onClose={() => setSelectedSku(null)} />
     </div>
