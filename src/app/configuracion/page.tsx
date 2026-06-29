@@ -17,6 +17,7 @@ import {
   Trash2,
   Tag,
   Target,
+  Upload,
 } from "lucide-react";
 import {
   getExclusions,
