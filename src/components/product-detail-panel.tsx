@@ -18,6 +18,7 @@ import {
   Tag,
   Package,
   Box,
+  Boxes,
   ShoppingCart,
   ShieldCheck,
   Sparkles,
@@ -36,6 +37,42 @@ import {
 } from "@/components/ui/classification";
 const SkuHistoryChart = dynamic(() => import("@/components/charts/sku-history-chart").then(mod => mod.SkuHistoryChart), { ssr: false });
 
+/* ── Similars (lista de productos parecidos en stock) ────── */
+
+type SimilarEstado = "vigilar" | "lentos" | "liquidar" | "alertas" | "comprar";
+
+type SimilarItem = {
+  sku: string;
+  producto: string;
+  estado: SimilarEstado;
+  stock: number;
+  cobertura: string;
+  unidades: number;
+};
+
+type SimilarsInfo = {
+  vigilar: number;
+  lentos: number;
+  liquidar: number;
+  items: SimilarItem[];
+};
+
+const ESTADO_LABEL: Record<SimilarEstado, string> = {
+  vigilar: "Saludable",
+  lentos: "Lento",
+  liquidar: "Liquidar",
+  alertas: "Alerta",
+  comprar: "Comprar",
+};
+
+const ESTADO_TONE: Record<SimilarEstado, string> = {
+  vigilar: "bg-success/15 text-success border-success/20",
+  lentos: "bg-warning/15 text-warning border-warning/20",
+  liquidar: "bg-surface-3 text-muted border-border-soft",
+  alertas: "bg-danger/15 text-danger border-danger/20",
+  comprar: "bg-primary/15 text-primary border-primary/20",
+};
+
 /* ── Helpers ───────────────────────────────────────────────── */
 
 const s = (v: unknown): string => (v == null ? "" : String(v));
@@ -51,7 +88,9 @@ const n = (v: unknown): number => {
   return 0;
 };
 
-function generateProductInsight(row: Record<string, unknown>): { text: string; tone: "success" | "warning" | "danger" | "info" } {
+type InsightTone = "success" | "warning" | "danger" | "info";
+
+function baseProductInsight(row: Record<string, unknown>): { text: string; tone: InsightTone } {
   const rotacion = n(row["% Rotación Stock"]);
   const clasificacion = s(row["Clasificación"]);
   const diasAgotado = n(row["Días Agotado"]);
@@ -78,7 +117,7 @@ function generateProductInsight(row: Record<string, unknown>): { text: string; t
       text: `¡Excelente desempeño! Este producto tiene una rotación sumamente saludable (${rotacion}%). El stock actual es bueno, pero mantenlo en vigilancia para evitar futuros quiebres.`,
     };
   }
-  
+
   if (sugerencia && sugerencia.toLowerCase().includes("transferir")) {
     return {
       tone: "info",
@@ -99,6 +138,26 @@ function generateProductInsight(row: Record<string, unknown>): { text: string; t
   };
 }
 
+function generateProductInsight(
+  row: Record<string, unknown>,
+  similares?: SimilarsInfo,
+): { text: string; tone: InsightTone } {
+  const base = baseProductInsight(row);
+  if (!similares || similares.items.length === 0) return base;
+
+  const partes: string[] = [];
+  if (similares.vigilar > 0) partes.push(`${similares.vigilar} con stock saludable`);
+  if (similares.lentos > 0) partes.push(`${similares.lentos} con rotación lenta`);
+  if (similares.liquidar > 0) partes.push(`${similares.liquidar} en liquidación`);
+  if (partes.length === 0) return base;
+
+  const prefijo = `⚠ Antes de comprar: ya tienes ${partes.join(", ")} en esta misma subcategoría con nombres parecidos. Revísalos abajo para no duplicar inventario. `;
+  return {
+    tone: base.tone === "danger" ? "danger" : "warning",
+    text: prefijo + base.text,
+  };
+}
+
 /** Staggered section animation props */
 const sectionMotion = (i: number) => ({
   initial: { opacity: 0, y: 20 },
@@ -113,6 +172,8 @@ interface ProductDetailPanelProps {
   open: boolean;
   onClose: () => void;
   sucursalName: string | null;
+  similares?: SimilarsInfo;
+  onOpenSimilar?: (sku: string) => void;
 }
 
 /* ── Section title helper ──────────────────────────────────── */
@@ -193,6 +254,8 @@ export function ProductDetailPanel({
   open,
   onClose,
   sucursalName,
+  similares,
+  onOpenSimilar,
 }: ProductDetailPanelProps) {
   /* ── SKU history query ─────────────────────────────────── */
   const sku = s(row["Código SKU"] ?? row["SKU"] ?? row["Código"] ?? row["sku"]);
@@ -228,7 +291,8 @@ export function ProductDetailPanel({
 
   let sectionIdx = 0;
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const insight = generateProductInsight(row);
+  const insight = generateProductInsight(row, similares);
+  const hasSimilares = !!similares && similares.items.length > 0;
 
   return (
     <Drawer
@@ -363,6 +427,61 @@ export function ProductDetailPanel({
           </div>
         )}
       </motion.div>
+
+      {/* ────────────────────────────────────────────────────
+          Section 1b: Productos similares en inventario
+          ──────────────────────────────────────────────────── */}
+      {hasSimilares && (
+        <motion.div {...sectionMotion(sectionIdx++)} className={divider}>
+          <SectionTitle icon={Boxes}>Productos similares en tu inventario</SectionTitle>
+          <p className="mb-3 text-xs text-muted">
+            Otros SKUs de la misma subcategoría con nombres parecidos. Revísalos antes de confirmar la compra para no duplicar stock.
+          </p>
+          <div className="flex flex-col gap-2">
+            {similares!.items.slice(0, 6).map((sim) => (
+              <button
+                key={sim.sku}
+                type="button"
+                onClick={() => onOpenSimilar?.(sim.sku)}
+                disabled={!onOpenSimilar}
+                className={cn(
+                  "group flex items-center justify-between gap-3 rounded-lg border border-border-soft bg-surface-2 px-3 py-2.5 text-left transition-colors",
+                  onOpenSimilar && "hover:bg-surface-3 hover:border-border cursor-pointer",
+                  !onOpenSimilar && "cursor-default",
+                )}
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="line-clamp-1 text-sm font-medium text-fg group-hover:text-primary transition-colors">
+                    {sim.producto || "—"}
+                  </p>
+                  <p className="mt-1 font-mono text-[0.65rem] text-faint">
+                    SKU {sim.sku} · Cobertura {sim.cobertura}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <span className={cn(
+                    "inline-flex items-center rounded-full border px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide",
+                    ESTADO_TONE[sim.estado],
+                  )}>
+                    {ESTADO_LABEL[sim.estado]}
+                  </span>
+                  <span className="font-mono text-xs font-semibold text-fg tabular-nums whitespace-nowrap">
+                    {num(sim.stock)} u
+                  </span>
+                  {onOpenSimilar && (
+                    <ChevronRight className="h-4 w-4 text-faint group-hover:text-primary transition-colors" />
+                  )}
+                </div>
+              </button>
+            ))}
+            {similares!.items.length > 6 && (
+              <p className="text-center text-xs text-faint pt-1">
+                y {similares!.items.length - 6} similar{similares!.items.length - 6 === 1 ? "" : "es"} más
+              </p>
+            )}
+          </div>
+        </motion.div>
+      )}
 
       {/* ────────────────────────────────────────────────────
           Section 2: KPI Grid (2 rows × 4 cols)

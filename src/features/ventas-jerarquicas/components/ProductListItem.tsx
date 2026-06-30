@@ -1,10 +1,11 @@
 import React from "react";
-import { ChevronRight, Banknote, Package, Box, Target, TrendingUp, Activity } from "lucide-react";
+import { ChevronRight, Banknote, Package, Box, Target, TrendingUp, Activity, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { moneyCompact, num, num2, pct } from "@/lib/format";
 import { getClassificationMeta, SmoothSparkline, shortClasif } from "@/components/ui/classification";
 import { Row } from "../types";
 import { s, n } from "../utils";
+import { SimilarsInfo, similarsLabel } from "../utils/similarity";
 
 function getTrendMock(tendencia: string, clasif: string) {
   const t = tendencia.toUpperCase();
@@ -25,12 +26,14 @@ export const ProductListItem = React.memo(function ProductListItem({
   ventas,
   unidades,
   stock,
+  similares,
   onClick,
 }: {
   sku: Row;
   ventas: number;
   unidades: number;
   stock: number;
+  similares?: SimilarsInfo;
   onClick?: () => void;
 }) {
   const clasif = String(sku["Clasificación"] || "");
@@ -39,9 +42,13 @@ export const ProductListItem = React.memo(function ProductListItem({
   const Icon = meta.icon;
   
   const [v90, v30, p30] = getTrendMock(tendencia, clasif);
+  const hasSimilares = !!similares && similares.items.length > 0;
 
   return (
-    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-4 py-3 hover:bg-surface-3/40 hover:shadow-lg transition-all duration-300 ease-out cursor-pointer group rounded-xl mx-2 my-1 border border-transparent hover:border-white/5 relative overflow-hidden" onClick={onClick}>
+    <div className={cn(
+      "flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-4 py-3 hover:bg-surface-3/40 hover:shadow-lg transition-all duration-300 ease-out cursor-pointer group rounded-xl mx-2 my-1 border border-transparent hover:border-white/5 relative overflow-hidden",
+      hasSimilares && "border-l-2 border-l-warning/60 rounded-l-none"
+    )} onClick={onClick}>
       {/* Background glow on hover */}
       <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
       
@@ -53,13 +60,21 @@ export const ProductListItem = React.memo(function ProductListItem({
         <p className="font-mono text-[0.65rem] text-faint mt-1">
           {s(sku["Código SKU"])} <span className="mx-1 text-border">|</span> <span className="text-muted">{s(sku["Categoría"])}</span>
         </p>
-        <div className="flex items-center gap-1.5 mt-2">
+        <div className="flex items-center gap-1.5 mt-2 flex-wrap">
           <span className={cn("inline-flex items-center gap-1 text-[0.6rem] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border border-white/5 shadow-sm", meta.bgClass, meta.colorClass)}>
             <Icon className="h-2.5 w-2.5" /> {shortClasif(clasif)}
           </span>
           {s(sku["XYZ"]) && (
             <span className="inline-flex items-center text-[0.6rem] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded bg-surface-3 text-muted border border-white/5 shadow-sm">
               XYZ: {s(sku["XYZ"]).charAt(0)}
+            </span>
+          )}
+          {hasSimilares && (
+            <span
+              title="Ya tienes productos parecidos en otras categorías de la misma subcategoría"
+              className="inline-flex items-center gap-1 text-[0.6rem] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border border-warning/30 bg-warning/15 text-warning shadow-sm"
+            >
+              <AlertTriangle className="h-2.5 w-2.5" /> {similarsLabel(similares!)}
             </span>
           )}
         </div>

@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { getMatrix } from "@/lib/api";
 import { Row, KanbanCol, DeptNode } from "../types";
 import { getKanbanColumn, n, s } from "../utils";
+import { KANBAN_COLS } from "../utils/kanbanConfig";
+import { buildSimilarityIndex } from "../utils/similarity";
 import { animate, stagger } from "animejs";
 
 export function useVentasJerarquicas(sucursalName: string | null) {
@@ -46,6 +48,8 @@ export function useVentasJerarquicas(sucursalName: string | null) {
   });
 
   const allRows = useMemo<Row[]>(() => q.data?.rows ?? [], [q.data]);
+
+  const similarityIndex = useMemo(() => buildSimilarityIndex(allRows), [allRows]);
 
   const ventasDeRow = (r: Row) => n(r["Vendido SKU S/"]);
   const unds90 = (r: Row) => n(r["Unds Vend (90d)"]);
@@ -315,6 +319,18 @@ export function useVentasJerarquicas(sucursalName: string | null) {
     return counts;
   }, [skusFiltrados]);
 
+  const sortedCols = useMemo(() => {
+    return [...KANBAN_COLS].sort((a, b) => {
+      const baseOrder = ["vigilar", "lentos", "comprar", "liquidar", "alertas"];
+      const countA = tabCounts[a.id] || 0;
+      const countB = tabCounts[b.id] || 0;
+      const hasA = countA > 0 ? 1 : 0;
+      const hasB = countB > 0 ? 1 : 0;
+      if (hasA !== hasB) return hasB - hasA;
+      return baseOrder.indexOf(a.id) - baseOrder.indexOf(b.id);
+    });
+  }, [tabCounts]);
+
   const tabItems = useMemo(
     () => skusFiltrados.filter((r) => getKanbanColumn(r) === activeTab),
     [skusFiltrados, activeTab],
@@ -328,9 +344,13 @@ export function useVentasJerarquicas(sucursalName: string | null) {
   );
 
   useEffect(() => {
-    // eslint-disable-next-line
     setCurrentPage(1);
-  }, [activeTab, deptoSel, catSel, subcatSel, busqueda, fStock, fDias, fMesIngreso, fXYZ, fTendencia, fCobertura]);
+    // Siempre selecciona la primera columna (botón) resultante de nuestro orden dinámico
+    if (sortedCols.length > 0) {
+      setActiveTab(sortedCols[0].id);
+    }
+    // eslint-disable-next-line
+  }, [deptoSel, catSel, subcatSel, busqueda, fStock, fDias, fMesIngreso, fXYZ, fTendencia, fCobertura]);
 
   useEffect(() => {
     animate(".product-list-item", {
@@ -391,6 +411,8 @@ export function useVentasJerarquicas(sucursalName: string | null) {
     safePage,
     pageItems,
     hasActiveFilters,
-    hasActiveAdvancedFilters
+    hasActiveAdvancedFilters,
+    similarityIndex,
+    sortedCols,
   };
 }

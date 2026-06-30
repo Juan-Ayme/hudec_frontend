@@ -36,8 +36,17 @@ export function VentasJerarquicasView() {
     fMesIngreso, setFMesIngreso, fXYZ, setFXYZ, fTendencia, setFTendencia, fCobertura, setFCobertura,
     showFilters, setShowFilters, showAdvancedFilters, setShowAdvancedFilters,
     jerarquia, totalGeneral, mesesDisponibles, clearSelection, tabCounts, tabItems, totalPages, safePage, pageItems,
-    hasActiveFilters
+    hasActiveFilters, similarityIndex, sortedCols,
   } = state;
+
+  const selectedSimilares = selectedSku
+    ? similarityIndex.get(s(selectedSku["Código SKU"]))
+    : undefined;
+
+  const openSimilarSku = (skuCode: string) => {
+    const found = allRows.find((r) => s(r["Código SKU"]) === skuCode);
+    if (found) setSelectedSku(found);
+  };
 
   if (q.isError) return <ErrorState error={q.error} />;
   if (q.isLoading) return <AnimeLoader label="Analizando jerarquías..." />;
@@ -195,7 +204,7 @@ export function VentasJerarquicasView() {
         {/* Kanban Tabs */}
         <div className="border-b border-white/5 bg-surface-2/40 relative z-10">
           <div className="flex gap-2 overflow-x-auto px-5 py-3 custom-scrollbar">
-            {KANBAN_COLS.map((col) => {
+            {sortedCols.map((col) => {
               const count = tabCounts[col.id];
               const isActive = activeTab === col.id;
               const Icon = col.icon;
@@ -405,6 +414,7 @@ export function VentasJerarquicasView() {
                   ventas={n(sku["Vendido SKU S/"])}
                   unidades={n(sku["Unds Vend (90d)"])}
                   stock={n(sku["Stock Disp"])}
+                  similares={similarityIndex.get(s(sku["Código SKU"]))}
                   onClick={() => setSelectedSku(sku)}
                 />
               ))}
@@ -442,6 +452,8 @@ export function VentasJerarquicasView() {
         open={!!selectedSku}
         onClose={() => setSelectedSku(null)}
         sucursalName={sucursalName}
+        similares={selectedSimilares}
+        onOpenSimilar={openSimilarSku}
       />
     </div>
   );
