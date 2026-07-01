@@ -21,7 +21,7 @@ import { JerarquiaTree, RootNode } from "./HierarchySidebar";
 import { SkuTable } from "./SkuTable";
 import { SkuDetailDrawer } from "./SkuDetailDrawer";
 import { TreeLoader, ListLoader, TableLoader } from "@/components/ui/chart-loaders";
-import { comprasCatalogoExcelUrl } from "@/lib/api";
+import { comprasCatalogoExcelUrl, downloadExcelFile } from "@/lib/api";
 
 function FilterChip({
   label,
@@ -254,7 +254,7 @@ export function ComprasView() {
   } = useComprasCatalogo(officeId);
   const downloadExcel = () => {
     if (officeId != null) {
-      window.open(comprasCatalogoExcelUrl({ office_id: officeId }), "_blank");
+      downloadExcelFile(comprasCatalogoExcelUrl({ office_id: officeId }), "compras_catalogo.xlsx").catch(console.error);
     }
   };
 

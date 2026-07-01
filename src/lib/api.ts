@@ -866,6 +866,59 @@ export function matrixExcelUrl(
   return `${API_BASE_URL}/matrix/${moduleId}/excel${qs ? `?${qs}` : ""}`;
 }
 
+/**
+ * Descarga un archivo Excel desde la API usando fetch() con credentials.
+ *
+ * En producción el frontend y la API corren en dominios distintos. Una
+ * navegación directa (`<a href=...>.click()` o `window.open()`) NO envía
+ * la cookie httpOnly cross-site, así que el backend responde 401.
+ *
+ * fetch() con `credentials: "include"` SÍ envía la cookie cross-origin
+ * (siempre que CORS tenga allow_credentials=True y SameSite=None+Secure).
+ * Una vez recibido el blob, creamos un Object URL local para descargarlo.
+ */
+export async function downloadExcelFile(
+  url: string,
+  fallbackFilename = "reporte.xlsx",
+): Promise<void> {
+  const headers: Record<string, string> = {};
+  const companyId = readActiveCompanyId();
+  if (companyId !== null) headers["X-Company-Id"] = String(companyId);
+
+  const res = await fetch(url, {
+    credentials: "include",
+    headers,
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    let detail: string;
+    try {
+      const json = JSON.parse(text);
+      detail = json.detail ?? json.error ?? `Error ${res.status}`;
+    } catch {
+      detail = text || `Error ${res.status}`;
+    }
+    throw new ApiError(res.status, detail);
+  }
+
+  const blob = await res.blob();
+
+  // Intentar extraer el nombre del archivo del header Content-Disposition.
+  const disposition = res.headers.get("Content-Disposition");
+  const nameMatch = disposition?.match(/filename="?([^";\n]+)"?/);
+  const filename = nameMatch?.[1] ?? fallbackFilename;
+
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(blobUrl);
+}
+
 // ─────────────────────── Taxonomía ──────────────────────
 export const getTaxonomyTree = (signal?: AbortSignal) =>
   request<TaxonomyTree>("/taxonomy/tree", { signal });

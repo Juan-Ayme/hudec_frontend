@@ -20,6 +20,7 @@ import {
   setGoals,
   dailyReportExcelUrl,
   comprasCatalogoExcelUrl,
+  downloadExcelFile,
   getMatrixActionGroups,
 } from "@/lib/api";
 import { money, num, pct } from "@/lib/format";
@@ -78,23 +79,13 @@ export default function TableroSemanalPage() {
   // Excel del Informe Diario — solo mes en curso (el backend fuerza el mes actual).
   const downloadDailyReport = () => {
     const url = dailyReportExcelUrl({ office_id: officeId });
-    const a = document.createElement("a");
-    a.href = url;
-    a.rel = "noopener";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    downloadExcelFile(url, "informe_diario.xlsx").catch(console.error);
   };
 
   // Excel Compras & Catálogo — quiebres reales (venta perdida HOY) + ranking categorías.
   const downloadComprasCatalogo = () => {
     const url = comprasCatalogoExcelUrl({ days, office_id: officeId });
-    const a = document.createElement("a");
-    a.href = url;
-    a.rel = "noopener";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    downloadExcelFile(url, "compras_catalogo.xlsx").catch(console.error);
   };
 
   const data = board.data;

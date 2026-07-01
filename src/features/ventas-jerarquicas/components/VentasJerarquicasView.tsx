@@ -6,7 +6,7 @@ import {
   X, Calendar, Package, Timer, Target, BarChart2, ShieldAlert
 } from "lucide-react";
 import { useSucursal } from "@/components/sucursal-context";
-import { matrixExcelUrl } from "@/lib/api";
+import { matrixExcelUrl, downloadExcelFile } from "@/lib/api";
 import { money, num, pct } from "@/lib/format";
 import { Card, CardBody } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -250,12 +250,14 @@ export function VentasJerarquicasView() {
               <span className="hidden sm:inline font-semibold">Filtros</span>
               {hasActiveFilters && <span className={cn("ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full text-[0.6rem] font-bold", showFilters ? "bg-white text-violet" : "bg-violet text-white")}>!</span>}
             </Button>
-            <a href={matrixExcelUrl("04b", { sucursal: sucursalName ?? undefined })} target="_blank" rel="noopener">
-              <Button variant="outline" size="sm" className="h-10 shrink-0 rounded-lg border-success/40 bg-success/12 text-success transition-colors hover:bg-success/25 hover:border-success/60 px-4 font-semibold">
+            <Button
+              variant="outline" size="sm"
+              className="h-10 shrink-0 rounded-lg border-success/40 bg-success/12 text-success transition-colors hover:bg-success/25 hover:border-success/60 px-4 font-semibold"
+              onClick={() => downloadExcelFile(matrixExcelUrl("04b", { sucursal: sucursalName ?? undefined }), "ventas_jerarquicas.xlsx").catch(console.error)}
+            >
                 <Download className="h-4 w-4" />
                 <span className="hidden sm:inline">Excel</span>
-              </Button>
-            </a>
+            </Button>
           </div>
 
           {hasActiveFilters && (

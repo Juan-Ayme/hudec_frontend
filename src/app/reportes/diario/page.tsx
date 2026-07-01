@@ -14,7 +14,7 @@ import {
   Minus,
   Download,
 } from "lucide-react";
-import { getSalesByDay, getMatrixActionGroups, matrixExcelUrl } from "@/lib/api";
+import { getSalesByDay, getMatrixActionGroups, matrixExcelUrl, downloadExcelFile } from "@/lib/api";
 import { money, num } from "@/lib/format";
 import {
   getClasif,
@@ -137,12 +137,7 @@ export default function ReporteDiarioPage() {
       sucursal: sucursalName || undefined,
       accion,
     });
-    const a = document.createElement("a");
-    a.href = url;
-    a.rel = "noopener";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    downloadExcelFile(url, `reporte_${accion}.xlsx`).catch(console.error);
   };
 
   return (
