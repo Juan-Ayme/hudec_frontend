@@ -7,6 +7,7 @@ import { ChevronLeft, ChevronRight, LogOut, Menu, ShieldCheck, X } from "lucide-
 import { NAV_GROUPS, ALL_NAV_ITEMS } from "./nav";
 import { ApiStatus } from "./api-status";
 import { SucursalSelector } from "./sucursal-context";
+import { CompanySelector } from "./company-context";
 import { Toaster } from "./ui/toaster";
 import { useAuth } from "./auth-context";
 import { cn } from "@/lib/utils";
@@ -183,7 +184,7 @@ function Brand({ collapsed = false }: { collapsed?: boolean }) {
 }
 
 function UserMenu() {
-  const { user, signOut } = useAuth();
+  const { user, companies, signOut } = useAuth();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   if (!user) return null;
@@ -199,6 +200,10 @@ function UserMenu() {
     viewer: "bg-surface-3 text-muted",
   };
 
+  // Rol "de referencia" hasta que exista el CompanyContext: el rol en la
+  // primera empresa del user. En 5.4 esto pasa a leer la empresa activa.
+  const displayRole = companies[0]?.role ?? "viewer";
+
   return (
     <div className="relative">
       <button
@@ -213,10 +218,10 @@ function UserMenu() {
           <span
             className={cn(
               "rounded px-1 py-0.5 text-[0.62rem] uppercase tracking-wider",
-              roleStyle[user.role] ?? "",
+              roleStyle[displayRole] ?? "",
             )}
           >
-            {user.role}
+            {displayRole}
           </span>
         </span>
       </button>
@@ -226,7 +231,7 @@ function UserMenu() {
           <div className="absolute right-0 z-40 mt-1 w-48 overflow-hidden rounded-md border border-border-soft bg-surface shadow-card-hover">
             <div className="border-b border-border/30 px-3 py-2 text-xs text-muted">
               <p className="font-semibold text-fg">{user.username}</p>
-              <p>{user.role}</p>
+              <p>{displayRole}</p>
             </div>
             <button
               onClick={handleLogout}
@@ -389,6 +394,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {current?.label ?? "Dashboard"}
           </h1>
           <div className="ml-auto flex items-center gap-3">
+            <CompanySelector />
             <SucursalSelector />
             <div className="lg:hidden">
               <ApiStatus />

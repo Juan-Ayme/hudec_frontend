@@ -9,6 +9,7 @@ import {
 import { ApiError } from "@/lib/api";
 import { SucursalProvider } from "@/components/sucursal-context";
 import { AuthProvider } from "@/components/auth-context";
+import { CompanyProvider } from "@/components/company-context";
 
 const config: QueryClientConfig = {
   defaultOptions: {
@@ -32,7 +33,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={client}>
       <AuthProvider>
-        <SucursalProvider>{children}</SucursalProvider>
+        <CompanyProvider>
+          <SucursalProvider>{children}</SucursalProvider>
+        </CompanyProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

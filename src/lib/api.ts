@@ -83,15 +83,42 @@ interface RequestOptions {
   signal?: AbortSignal;
 }
 
+const COMPANY_STORAGE_KEY = "kawii.company";
+
+/** Lee del localStorage la empresa activa. Usado para inyectar `X-Company-Id`
+ * en cada request. NO es un hook: se puede llamar fuera de React.
+ * Ver CompanyProvider (src/components/company-context.tsx) para el estado UI.
+ */
+function readActiveCompanyId(): number | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(COMPANY_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
   const { method = "GET", query, body, signal } = opts;
   const url = `${API_BASE_URL}${path}${buildQuery(query)}`;
+
+  // Multi-tenant: si hay una empresa activa, la mandamos en cada request.
+  // El backend valida contra user_companies. Si no hay, los endpoints
+  // protegidos por empresa responden 400 (transitorio — el user aún no
+  // eligió) o 403.
+  const headers: Record<string, string> = {};
+  if (body) headers["Content-Type"] = "application/json";
+  const companyId = readActiveCompanyId();
+  if (companyId !== null) headers["X-Company-Id"] = String(companyId);
 
   let res: Response;
   try {
     res = await fetch(url, {
       method,
-      headers: body ? { "Content-Type": "application/json" } : undefined,
+      headers,
       body: body ? JSON.stringify(body) : undefined,
       signal,
       // ★ Auth: el backend usa cookies httpOnly. `credentials: 'include'`
@@ -340,23 +367,41 @@ export const importConfig = (
     body: { config, label: label ?? null },
   });
 
-// ─────────────────────── Auth ───────────────────────
+// ─────────────────────── Auth (multi-tenant) ───────────────────────
 export type UserRole = "admin" | "operador" | "viewer";
 
+/** Empresa a la que pertenece el usuario, con su rol EN ESA empresa. */
+export interface Company {
+  id: number;
+  name: string;
+  slug: string;
+  role: UserRole;
+}
+
+/** El usuario autenticado. NO lleva role — el role es por empresa (ver Company). */
 export interface AuthUser {
+  id: number;
+  username: string;
+  is_active: boolean;
+}
+
+/** Respuesta de /auth/me: user + empresas donde tiene membresía. */
+export interface MeResponse extends AuthUser {
+  companies: Company[];
+}
+
+/** Fila de la tabla de usuarios en /auth/users. El `role` es en la empresa activa. */
+export interface AuthUserDetailed {
   id: number;
   username: string;
   role: UserRole;
   is_active: boolean;
-}
-
-export interface AuthUserDetailed extends AuthUser {
   created_at: string;
   last_login_at: string | null;
 }
 
 export const login = (username: string, password: string) =>
-  request<{ ok: boolean; user: AuthUser }>("/auth/login", {
+  request<{ ok: boolean; user: AuthUser; companies: Company[] }>("/auth/login", {
     method: "POST",
     body: { username, password },
   });
@@ -365,7 +410,7 @@ export const logout = () =>
   request<{ ok: boolean }>("/auth/logout", { method: "POST", body: {} });
 
 export const getMe = (signal?: AbortSignal) =>
-  request<AuthUser>("/auth/me", { signal });
+  request<MeResponse>("/auth/me", { signal });
 
 export const listUsers = (signal?: AbortSignal) =>
   request<{ total: number; users: AuthUserDetailed[] }>("/auth/users", { signal });
@@ -375,24 +420,28 @@ export const createUser = (body: {
   password: string;
   role: UserRole;
 }) =>
-  request<{ ok: boolean; id: number; username: string; role: UserRole }>(
-    "/auth/users",
-    { method: "POST", body },
-  );
+  request<{
+    ok: boolean;
+    id: number;
+    username: string;
+    role: UserRole;
+    company_id: number;
+  }>("/auth/users", { method: "POST", body });
 
 export const updateUser = (
   id: number,
   body: { role?: UserRole; is_active?: boolean; password?: string },
 ) =>
-  request<{ ok: boolean; id: number }>(`/auth/users/${id}`, {
+  request<{ ok: boolean; id: number; company_id: number }>(`/auth/users/${id}`, {
     method: "PATCH",
     body,
   });
 
 export const deleteUser = (id: number) =>
-  request<{ ok: boolean; deleted_id: number }>(`/auth/users/${id}`, {
-    method: "DELETE",
-  });
+  request<{ ok: boolean; removed_user_id: number; company_id: number }>(
+    `/auth/users/${id}`,
+    { method: "DELETE" },
+  );
 
 // La API serializa columnas NUMERIC de PostgreSQL como string ("37028.63").
 // Estos helpers las devuelven como número real para que `ventas + ventas` sume
