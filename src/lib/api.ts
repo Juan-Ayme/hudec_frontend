@@ -47,6 +47,7 @@ import type {
   TopProduct,
   // TransferResponse,         // usado solo por getMatrixTransfers (comentado)
 } from "./types";
+import { toast } from "@/lib/toast";
 
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ||
@@ -881,42 +882,65 @@ export async function downloadExcelFile(
   url: string,
   fallbackFilename = "reporte.xlsx",
 ): Promise<void> {
-  const headers: Record<string, string> = {};
-  const companyId = readActiveCompanyId();
-  if (companyId !== null) headers["X-Company-Id"] = String(companyId);
-
-  const res = await fetch(url, {
-    credentials: "include",
-    headers,
+  const toastId = toast.loading("Generando Excel…", {
+    description: "Esto puede tomar unos segundos",
   });
 
-  if (!res.ok) {
-    const text = await res.text();
-    let detail: string;
-    try {
-      const json = JSON.parse(text);
-      detail = json.detail ?? json.error ?? `Error ${res.status}`;
-    } catch {
-      detail = text || `Error ${res.status}`;
+  try {
+    const headers: Record<string, string> = {};
+    const companyId = readActiveCompanyId();
+    if (companyId !== null) headers["X-Company-Id"] = String(companyId);
+
+    const res = await fetch(url, {
+      credentials: "include",
+      headers,
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      let detail: string;
+      try {
+        const json = JSON.parse(text);
+        detail = json.detail ?? json.error ?? `Error ${res.status}`;
+      } catch {
+        detail = text || `Error ${res.status}`;
+      }
+      throw new ApiError(res.status, detail);
     }
-    throw new ApiError(res.status, detail);
+
+    const blob = await res.blob();
+
+    // Intentar extraer el nombre del archivo del header Content-Disposition.
+    const disposition = res.headers.get("Content-Disposition");
+    const nameMatch = disposition?.match(/filename="?([^";\n]+)"?/);
+    const filename = nameMatch?.[1] ?? fallbackFilename;
+
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(blobUrl);
+
+    toast.success("Excel descargado", {
+      id: toastId,
+      description: filename,
+    });
+  } catch (err) {
+    const message =
+      err instanceof ApiError
+        ? err.message
+        : err instanceof Error
+          ? err.message
+          : "Error desconocido";
+    toast.error("Error al descargar", {
+      id: toastId,
+      description: message,
+    });
+    throw err;
   }
-
-  const blob = await res.blob();
-
-  // Intentar extraer el nombre del archivo del header Content-Disposition.
-  const disposition = res.headers.get("Content-Disposition");
-  const nameMatch = disposition?.match(/filename="?([^";\n]+)"?/);
-  const filename = nameMatch?.[1] ?? fallbackFilename;
-
-  const blobUrl = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = blobUrl;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(blobUrl);
 }
 
 // ─────────────────────── Taxonomía ──────────────────────
